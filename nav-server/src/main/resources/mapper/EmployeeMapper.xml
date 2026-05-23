@@ -1,5 +1,52 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="com.nav.mapper.EmployeeMapper">
+<mapper namespace="com.nav.mapper.AdminScenicSpotMapper">
+
+    <select id="pageQuery" resultType="com.nav.vo.AdminScenicSpotVO">
+        SELECT
+        s.id AS scenicId,
+        s.name AS name,
+        SUBSTRING(s.description, 1, 30) AS intro,
+        u.phone AS lastModifier,
+        s.updated_at AS modifyTime
+        FROM scenic_spots s
+        LEFT JOIN users u ON s.updated_by = u.id
+        <where>
+            s.is_deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND s.name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY s.updated_at DESC
+    </select>
+
+    <insert id="insert">
+        INSERT INTO scenic_spots
+        (name, description, image_url, audio_url, latitude, longitude, location, radius, is_deleted, created_by, updated_by, created_at, updated_at)
+        VALUES
+        (#{name}, #{description}, #{imageUrl}, #{audioUrl}, #{latitude}, #{longitude},
+        ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326),
+        #{radius}, #{isDeleted}, #{createdBy}, #{updatedBy}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="update">
+        UPDATE scenic_spots
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="imageUrl != null">image_url = #{imageUrl},</if>
+            <if test="audioUrl != null">audio_url = #{audioUrl},</if>
+            <if test="latitude != null">latitude = #{latitude},</if>
+            <if test="longitude != null">longitude = #{longitude},</if>
+            <if test="latitude != null and longitude != null">
+                location = ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326),
+            </if>
+            <if test="radius != null">radius = #{radius},</if>
+            <if test="updatedBy != null">updated_by = #{updatedBy},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+        </set>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
 </mapper>
