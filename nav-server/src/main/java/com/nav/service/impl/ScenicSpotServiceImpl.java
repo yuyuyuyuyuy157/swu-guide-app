@@ -10,6 +10,9 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @Slf4j
 public class ScenicSpotServiceImpl implements ScenicSpotService {
@@ -50,5 +53,32 @@ public class ScenicSpotServiceImpl implements ScenicSpotService {
         vo.setInductionRange(scenicSpot.getRadius());
 
         return vo;
+    }
+
+    @Override
+    public List<ScenicSpotVO> listAllScenicSpots() {
+        // 1. 直接查询全量 Entity 列表（不启用 PageHelper）
+        List<ScenicSpot> list = scenicSpotMapper.listAll();
+
+        // 2. 批量转化为 VO
+        List<ScenicSpotVO> voList = new ArrayList<>();
+        if (list != null && !list.isEmpty()) {
+            for (ScenicSpot spot : list) {
+                ScenicSpotVO vo = new ScenicSpotVO();
+                vo.setScenicId(spot.getId().toString()); // 规范：String化防精度丢失
+                vo.setName(spot.getName());
+                vo.setImage(spot.getImageUrl());
+                vo.setIntro(spot.getDescription());
+                vo.setInductionRange(spot.getRadius());
+
+                // 音频逻辑
+                boolean hasAudio = spot.getAudioUrl() != null && !spot.getAudioUrl().isEmpty();
+                vo.setHasAudio(hasAudio);
+                vo.setAudioId(hasAudio ? spot.getId().toString() : null);
+
+                voList.add(vo);
+            }
+        }
+        return voList;
     }
 }

@@ -16,4 +16,10 @@
         LIMIT 1
     </select>
 
+    <select id="listAll" resultType="com.nav.entity.ScenicSpot">
+        SELECT id, name, description, image_url, audio_url, latitude, longitude, radius, updated_by, created_at, updated_at
+        FROM scenic_spots
+        WHERE is_deleted = 0
+        ORDER BY id DESC
+    </select>
 </mapper>

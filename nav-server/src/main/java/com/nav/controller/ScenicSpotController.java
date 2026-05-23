@@ -6,11 +6,9 @@ import com.nav.service.ScenicSpotService;
 import com.nav.vo.ScenicSpotVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 @RestController
 @RequestMapping("/api/v1/scenic")
 @Slf4j
@@ -32,5 +30,12 @@ public class ScenicSpotController {
 
         ScenicSpotVO scenicSpotVO = scenicSpotService.getCurrentScenic(currentLocationDTO);
         return Result.success(scenicSpotVO);
+    }
+    // 获取全部景点列表
+    @GetMapping("/list")
+    public Result<List<ScenicSpotVO>> listAllScenicSpots() {
+        log.info("用户端初始化，触发全量景点列表查询");
+        List<ScenicSpotVO> list = scenicSpotService.listAllScenicSpots();
+        return Result.success(list);
     }
 }
