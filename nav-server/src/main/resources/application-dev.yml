@@ -1,7 +1,9 @@
 nav:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/smart_guide_db
+    host: localhost
+    port: 3306
+    database: smart_guide_db
     username: root
     password: hwy1002kn.
     type: com.alibaba.druid.pool.DruidDataSource

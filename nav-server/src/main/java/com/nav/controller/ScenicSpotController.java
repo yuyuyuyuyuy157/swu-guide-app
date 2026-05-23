@@ -10,20 +10,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping("/api/v1/scenic")
 @Slf4j
+@Tag(name = "景点模块接口")
 public class ScenicSpotController {
 
     @Autowired
     private ScenicSpotService scenicSpotService;
 
-    /**
-     * 获取当前位置景点信息
-     * @param currentLocationDTO 经纬度入参
-     * @return 统一返回结果 Result<ScenicSpotVO>
-     */
+    // 获取当前景点位置
     @PostMapping("/current")
     public Result<ScenicSpotVO> getCurrentScenic(@RequestBody CurrentLocationDTO currentLocationDTO) {
         log.info("接收到位置上报请求: {}", currentLocationDTO);
