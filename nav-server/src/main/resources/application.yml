@@ -48,3 +48,7 @@ springdoc:
     path: /v3/api-docs # 原始的 OpenAPI 元数据路径
 
   packages-to-scan: com.nav.controller # 严格指定只扫描业务模块下的控制器包
+
+baidu:
+  map:
+    ak: hw3a0UxUnQ6mHkEJPC7WcKxrJNA0s3Ap
