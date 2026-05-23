@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://www.mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.nav.mapper.ScenicSpotMapper">
+
+    <select id="getByCurrentLocation" resultType="com.nav.entity.ScenicSpot">
+        SELECT
+        id, name, description, image_url, audio_url, latitude, longitude, radius,
+        /* 动态计算当前位置到景点的距离（米） */
+        ST_Distance_Sphere(location, ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326)) AS distance
+        FROM scenic_spots
+        WHERE is_deleted = 0
+        /* 核心过滤：计算出的距离必须小于等于景点的感应半径 */
+        AND ST_Distance_Sphere(location, ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326)) &lt;= radius
+        ORDER BY distance ASC
+        LIMIT 1
+    </select>
+
+</mapper>
