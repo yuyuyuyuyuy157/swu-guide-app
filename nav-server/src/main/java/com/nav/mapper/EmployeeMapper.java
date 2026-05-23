@@ -1,6 +1,6 @@
 package com.nav.mapper;
 
-import com.sky.entity.Employee;
+import com.nav.entity.Employee;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 

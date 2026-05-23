@@ -50,4 +50,5 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
         //请求结束后，必须强行清理当前线程的 ThreadLocal 数据，彻底杜绝高并发下的内存泄漏
         BaseContext.removeCurrentId();
+    }
 }

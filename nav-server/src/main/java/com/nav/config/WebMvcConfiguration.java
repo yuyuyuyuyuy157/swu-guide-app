@@ -9,16 +9,14 @@ import org.springframework.context.annotation.Configuration;
 import com.nav.interceptor.JwtTokenInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 @Configuration
 @Slf4j
 public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
-    /**
-     * 设置静态资源映射
-     * @param registry 资源处理器注册中心
-     */
+    // 设置静态资源映射
+
     @Bean
     public OpenAPI customOpenAPI() {
         log.info("开始生成 Swagger 接口文档...");
