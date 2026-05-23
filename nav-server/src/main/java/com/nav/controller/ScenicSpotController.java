@@ -4,6 +4,7 @@ import com.nav.dto.CurrentLocationDTO;
 import com.nav.result.Result;
 import com.nav.service.ScenicSpotService;
 import com.nav.vo.ScenicSpotVO;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -18,8 +19,9 @@ public class ScenicSpotController {
     @Autowired
     private ScenicSpotService scenicSpotService;
 
-    // 获取当前景点位置
+    // 获取当前位置景点
     @PostMapping("/current")
+    @Operation(summary = "获取当前位置景点信息")
     public Result<ScenicSpotVO> getCurrentScenic(@RequestBody CurrentLocationDTO currentLocationDTO) {
         log.info("接收到位置上报请求: {}", currentLocationDTO);
 
@@ -31,8 +33,9 @@ public class ScenicSpotController {
         ScenicSpotVO scenicSpotVO = scenicSpotService.getCurrentScenic(currentLocationDTO);
         return Result.success(scenicSpotVO);
     }
-    // 获取全部景点列表
+
     @GetMapping("/list")
+    @Operation(summary = "获取全部景点列表信息")
     public Result<List<ScenicSpotVO>> listAllScenicSpots() {
         log.info("用户端初始化，触发全量景点列表查询");
         List<ScenicSpotVO> list = scenicSpotService.listAllScenicSpots();
