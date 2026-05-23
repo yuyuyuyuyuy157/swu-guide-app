@@ -2,6 +2,7 @@ package com.nav.service.impl;
 
 // =================== 1. 核心框架与事务依赖 ===================
 import com.nav.utils.JwtUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional; // 🎯 核心：控制多表操作的事务回滚
@@ -26,9 +27,11 @@ import com.nav.vo.UserLoginVO;
 import com.nav.vo.UserVO;
 import com.nav.dto.UserEditPasswordDTO;
 import java.util.HashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import com.nav.vo.AdminLoginVO;
+import com.nav.dto.AdminLoginDTO;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
     //用户登录
@@ -139,7 +142,7 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
     // 用户修改当前密码
-    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+
     @Override
     @Transactional(rollbackFor = Exception.class) // 涉及核心凭证变更，开启事务
     public void updatePassword(UserEditPasswordDTO dto) {
@@ -171,5 +174,39 @@ public class UserServiceImpl implements UserService {
 
         userMapper.updateById(user);
         log.info("🔒 用户 [ID: {}] 密码修改成功，密码时效审计点已更新。", currentUserId);
+    }
+    @Override
+    public AdminLoginVO adminLogin(AdminLoginDTO adminLoginDTO) {
+        String username = adminLoginDTO.getUsername();
+        String password = adminLoginDTO.getPassword();
+
+        // 1. 根据账号（由于users表phone充当账号或可扩展字段，这里直接eq角色和名字，或者用phone字段演化）
+        // 痛点驱动：为了演示严谨性，我们从users表里按照手机号/账号和ADMIN角色过滤
+        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(User::getPhone, username)
+                .eq(User::getRole, "ADMIN"); // 必须是管理员角色
+        User admin = userMapper.selectOne(queryWrapper);
+
+        if (admin == null) {
+            throw new com.nav.exception.BaseException("管理员账号不存在");
+        }
+
+        // 2. 🔐 密码比对：完全沿用你选定的加盐 MD5 算法
+        String inputHash = cn.hutool.crypto.SecureUtil.md5(password + username);
+        if (!inputHash.equals(admin.getPasswordHash())) {
+            throw new com.nav.exception.BaseException("管理员密码错误");
+        }
+
+        // 3. 生成管理员专属 Token（时效控制为 24 小时）
+        java.util.Map<String, Object> claims = new java.util.HashMap<>();
+        claims.put("userId", admin.getId());
+        claims.put("role", "ADMIN"); // 写入角色，方便拦截器进行后台 B 端越权校验
+        String token = com.nav.utils.JwtUtil.createToken(claims); // 后续可在JwtUtil里单独为管理员配置短时效
+
+        return AdminLoginVO.builder()
+                .token(token)
+                .adminId(admin.getId().toString())
+                .name("高级管理员(" + username.substring(0,3) + ")") // 模拟审计名
+                .build();
     }
 }
