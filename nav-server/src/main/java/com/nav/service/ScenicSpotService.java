@@ -10,6 +10,9 @@ public interface ScenicSpotService {
     ScenicSpotVO getCurrentScenic(CurrentLocationDTO currentLocationDTO);
     //获取全部景点列表信息
     List<ScenicSpotVO> listAllScenicSpots();
-    //
+    //分页搜索景点
     PageResult searchPage(ScenicSpotPageQueryDTO pageQueryDTO);
+    //根据ID查询景点详细信息
+    ScenicSpotVO getScenicById(Long scenicId);
+
 }

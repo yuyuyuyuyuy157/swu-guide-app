@@ -8,10 +8,12 @@ import com.nav.vo.ScenicSpotVO;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import com.nav.dto.ScenicSpotPageQueryDTO;
+import com.nav.dto.ScenicSpotSetPositionDTO;
 @RestController
 @RequestMapping("/api/v1/scenic")
 @Slf4j
@@ -33,6 +35,23 @@ public class ScenicSpotController {
         }
 
         ScenicSpotVO scenicSpotVO = scenicSpotService.getCurrentScenic(currentLocationDTO);
+        return Result.success(scenicSpotVO);
+    }
+    @PostMapping("/set-position")
+    @Operation(summary = "手动设置当前位置")
+    public Result<ScenicSpotVO> setPosition(@Validated @RequestBody ScenicSpotSetPositionDTO setPositionDTO) {
+        log.info("📡 接收到用户手动切换/设置当前位置请求，目标景点ID: {}", setPositionDTO.getScenicId());
+
+        // 1. 显式解析长整型 ID，捕获潜在的字符格式化非法异常
+        Long scenicId;
+        try {
+            scenicId = Long.valueOf(setPositionDTO.getScenicId());
+        } catch (NumberFormatException e) {
+            return Result.error(400, "非法的景点ID格式");
+        }
+
+        // 2. 调度业务层完成详情装配与视图重组
+        ScenicSpotVO scenicSpotVO = scenicSpotService.getScenicById(scenicId);
         return Result.success(scenicSpotVO);
     }
 

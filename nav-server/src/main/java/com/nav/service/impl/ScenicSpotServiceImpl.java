@@ -14,13 +14,14 @@ import java.util.ArrayList;
 import java.util.List;
 import com.nav.result.PageResult;
 import com.nav.dto.ScenicSpotPageQueryDTO;
+import com.nav.mapper.AdminScenicSpotMapper;
 @Service
 @Slf4j
 public class ScenicSpotServiceImpl implements ScenicSpotService {
 
     @Autowired
     private ScenicSpotMapper scenicSpotMapper;
-
+    private AdminScenicSpotMapper adminScenicSpotMapper;
     @Override
     public ScenicSpotVO getCurrentScenic(CurrentLocationDTO currentLocationDTO) {
         log.info("开始计算当前位置的附近景点: {}", currentLocationDTO);
@@ -53,6 +54,36 @@ public class ScenicSpotServiceImpl implements ScenicSpotService {
         // 这里的赋值也可以在SQL中直接查询出距离拿到，此处为简化逻辑映射
         vo.setInductionRange(scenicSpot.getRadius());
 
+        return vo;
+    }
+    @Override
+    public ScenicSpotVO getScenicById(Long scenicId) {
+        log.info("🎯 开始组装手动定位景点的视图载荷，目标ID: {}", scenicId);
+
+        // 1. 复用持久层接口，捞出未被软删除的有效景点元数据
+        ScenicSpot scenicSpot = adminScenicSpotMapper.getById(scenicId);
+        if (scenicSpot == null) {
+            log.warn("手动定位失败，目标景点在系统中不存在或已被软删除，ID: {}", scenicId);
+            throw new com.nav.exception.BaseException("未找到相关景点定位信息");
+        }
+
+        // 2. 深度重组清洗为符合《接口文档5.18.1》规范的 VO 视图对象
+        ScenicSpotVO vo = new ScenicSpotVO();
+        vo.setScenicId(scenicSpot.getId().toString()); // 黄金防线：规范化String处理防止前端长整型精度截断
+        vo.setName(scenicSpot.getName());
+        vo.setImage(scenicSpot.getImageUrl());
+        vo.setIntro(scenicSpot.getDescription());
+        vo.setInductionRange(scenicSpot.getRadius());
+
+        // 3. 语音讲解关联性深度计算
+        boolean hasAudio = scenicSpot.getAudioUrl() != null && !scenicSpot.getAudioUrl().isBlank();
+        vo.setHasAudio(hasAudio);
+        vo.setAudioId(hasAudio ? scenicSpot.getId().toString() : null);
+
+        // 4. 降级定位策略优化：由于用户是主动点选了该景点，因此直线物理距离在视觉层面上直接归零呈现
+        vo.setDistance("0m (手动指定)");
+
+        log.info("手动定位视图载荷组装完毕：景点名称={}, 语音状态={}", vo.getName(), vo.getHasAudio());
         return vo;
     }
 
