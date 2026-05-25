@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Select;
 import com.nav.entity.ScenicSpot;
 import org.apache.ibatis.annotations.Mapper;
 import java.util.List;
+import com.github.pagehelper.Page;
+import com.nav.dto.ScenicSpotPageQueryDTO;
 @Mapper
 public interface ScenicSpotMapper {
 
@@ -15,4 +17,5 @@ public interface ScenicSpotMapper {
     //查询所有未删除的景点（全量查询，供地图初始化渲染使用）
     List<ScenicSpot> listAll();
 
+    Page<ScenicSpot> pageQuery(ScenicSpotPageQueryDTO pageQueryDTO);
 }

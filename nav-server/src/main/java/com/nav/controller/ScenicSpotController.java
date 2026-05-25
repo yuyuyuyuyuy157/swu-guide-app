@@ -2,6 +2,7 @@ package com.nav.controller;
 
 import com.nav.dto.CurrentLocationDTO;
 import com.nav.result.Result;
+import com.nav.result.PageResult;
 import com.nav.service.ScenicSpotService;
 import com.nav.vo.ScenicSpotVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import com.nav.dto.ScenicSpotPageQueryDTO;
 @RestController
 @RequestMapping("/api/v1/scenic")
 @Slf4j
@@ -41,4 +43,24 @@ public class ScenicSpotController {
         List<ScenicSpotVO> list = scenicSpotService.listAllScenicSpots();
         return Result.success(list);
     }
+
+    @GetMapping("/search")
+    @Operation(summary = "用户端模糊搜索景点")
+    public Result<PageResult> searchScenicSpots(ScenicSpotPageQueryDTO scenicSpotPageQueryDTO) {
+        log.info("📡 用户端触发景点模糊搜索，关键字: {}, 当前页: {}, 每页条数: {}",
+                scenicSpotPageQueryDTO.getKeyword(), scenicSpotPageQueryDTO.getPage(), scenicSpotPageQueryDTO.getPageSize());
+
+        // 边界值健壮性检查，防止 PageHelper 拦截到非法参数引发报错
+        if (scenicSpotPageQueryDTO.getPage() == null || scenicSpotPageQueryDTO.getPage() < 1) {
+            scenicSpotPageQueryDTO.setPage(1);
+        }
+        if (scenicSpotPageQueryDTO.getPageSize() == null || scenicSpotPageQueryDTO.getPageSize() > 20) {
+            scenicSpotPageQueryDTO.setPageSize(10); // 严格对齐前端文档规范：最大20条
+        }
+
+        // 调用用户端 Service 层执行分页搜索
+        PageResult pageResult = scenicSpotService.searchPage(scenicSpotPageQueryDTO);
+        return Result.success(pageResult);
+    }
+
 }
