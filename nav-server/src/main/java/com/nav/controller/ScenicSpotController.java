@@ -4,6 +4,7 @@ import com.nav.dto.CurrentLocationDTO;
 import com.nav.result.Result;
 import com.nav.result.PageResult;
 import com.nav.service.ScenicSpotService;
+import com.nav.vo.ScenicSpotDetailVO;
 import com.nav.vo.ScenicSpotVO;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
@@ -82,4 +83,22 @@ public class ScenicSpotController {
         return Result.success(pageResult);
     }
 
+    @GetMapping("/detail/{id}") // 严格对齐前端路由及接口契约规范
+    @Operation(summary = "用户端获取景点图文详情")
+    public Result<ScenicSpotDetailVO> getDetailById(@PathVariable Long id) {
+        log.info("📡 用户端触发景点详情浏览，目标 ID: {}", id);
+
+        if (id == null) {
+            return Result.error(400, "请求的景点ID非法或为空");
+        }
+
+        // 调用业务层执行分步高性能装配
+        ScenicSpotDetailVO detailVO = scenicSpotService.getDetailById(id);
+
+        if (detailVO == null) {
+            return Result.error(404, "未找到相关的景点详情信息");
+        }
+
+        return Result.success(detailVO);
+    }
 }

@@ -15,6 +15,7 @@ import java.util.List;
 import com.nav.result.PageResult;
 import com.nav.dto.ScenicSpotPageQueryDTO;
 import com.nav.mapper.AdminScenicSpotMapper;
+import com.nav.vo.ScenicSpotDetailVO;
 @Service
 @Slf4j
 public class ScenicSpotServiceImpl implements ScenicSpotService {
@@ -143,5 +144,31 @@ public class ScenicSpotServiceImpl implements ScenicSpotService {
 
         // 4. 返回标准分页结果
         return new PageResult(page.getTotal(), voList);
+    }
+    private ScenicImageMapper scenicImageMapper;
+    @Override
+    public ScenicSpotDetailVO getDetailById(Long id) {
+        log.info("🎯 业务层启动分步查询。阶段一：捞取景点主表元数据，ID: {}", id);
+
+        // 1. 获取未被软删除的景点主表实体
+        com.nav.entity.ScenicSpot spot = adminScenicSpotMapper.getById(id);
+        if (spot == null) {
+            return null;
+        }
+
+        log.info("阶段二：通过外键关联，去副表捞取该景点的全部轮播图片");
+        // 2. 查出该景点对应的所有有效轮播图片（按照 sort_order 升序排列）
+        List<String> imageUrlList = scenicImageMapper.selectUrlsByScenicId(id);
+
+        // 3. 契约聚合：将分散在两张表的数据揉合、转换进前端唯一的视图对象中
+        ScenicSpotDetailVO detailVO = new ScenicSpotDetailVO();
+        org.springframework.beans.BeanUtils.copyProperties(spot, detailVO);
+
+        // 特殊属性精准修正与二次清洗
+        detailVO.setId(spot.getId().toString()); // 黄金防护：长整型 String 化防止前端 JS 精度截断
+        detailVO.setImages(imageUrlList);        // 塞入多媒体轮播图链接集合
+
+        log.info("景点详情 VO 组装大功告成。名称: {}, 共加载轮播图 {} 张", detailVO.getName(), imageUrlList.size());
+        return detailVO;
     }
 }

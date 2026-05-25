@@ -79,4 +79,12 @@
         ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326),
         #{radius}, #{isDeleted}, #{createdBy}, #{updatedBy}, #{createdAt}, #{updatedAt})
     </insert>
+
+    <insert id="insertBatch">
+        INSERT INTO scenic_images (scenic_id, image_url, sort_order)
+        VALUES
+        <foreach collection="images" item="img" separator=",">
+            (#{img.scenicId}, #{img.imageUrl}, #{img.sortOrder})
+        </foreach>
+    </insert>
 </mapper>

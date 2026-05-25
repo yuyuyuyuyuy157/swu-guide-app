@@ -1,6 +1,7 @@
 package com.nav.service;
 
 import com.nav.dto.CurrentLocationDTO;
+import com.nav.vo.ScenicSpotDetailVO;
 import com.nav.vo.ScenicSpotVO;
 import java.util.List;
 import com.nav.result.PageResult;
@@ -14,5 +15,6 @@ public interface ScenicSpotService {
     PageResult searchPage(ScenicSpotPageQueryDTO pageQueryDTO);
     //根据ID查询景点详细信息
     ScenicSpotVO getScenicById(Long scenicId);
-
+    //根据ID查询景点详细信息（包含关联路径锚点等核心内容）
+    ScenicSpotDetailVO getDetailById(Long id);
 }

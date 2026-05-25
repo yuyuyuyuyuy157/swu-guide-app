@@ -40,12 +40,13 @@ public class WebMvcConfiguration implements WebMvcConfigurer { // 改为实现�
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        log.info("🛡开始加载并部署全局安全拦截防线...");
+        log.info("开始加载并部署全局安全拦截防线...");
         registry.addInterceptor(jwtTokenInterceptor)
                 .addPathPatterns("/api/v1/**")
                 .excludePathPatterns(
                         "/api/v1/user/login",
                         "/api/v1/user/register",
+                        "/api/v1/scenic/detail/**", // 🎯 核心修正：完美放行用户端详情页的动态 ID 路径！
                         "/doc.html",
                         "/webjars/**",
                         "/v3/api-docs/**"
