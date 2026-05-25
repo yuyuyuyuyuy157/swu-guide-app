@@ -69,5 +69,14 @@
             </if>
         </set>
         WHERE id = #{id}
-        AND is_deleted = 0 </update>
+        AND is_deleted = 0
+    </update>
+    <insert id="insert">
+        INSERT INTO scenic_spots
+        (name, description, image_url, audio_url, latitude, longitude, location, radius, is_deleted, created_by, updated_by, created_at, updated_at)
+        VALUES
+        (#{name}, #{description}, #{imageUrl}, #{audioUrl}, #{latitude}, #{longitude},
+        ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326),
+        #{radius}, #{isDeleted}, #{createdBy}, #{updatedBy}, #{createdAt}, #{updatedAt})
+    </insert>
 </mapper>

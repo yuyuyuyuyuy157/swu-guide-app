@@ -6,7 +6,6 @@ import com.nav.entity.ScenicSpot;
 import com.nav.result.PageResult;
 import com.nav.result.Result;
 import com.nav.service.AdminScenicSpotService;
-import com.nav.vo.ScenicSpotVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +24,20 @@ public class AdminScenicSpotController {
     @PostMapping
     @Operation(summary = "管理端新增景点")
     public Result<String> save(@RequestBody ScenicSpotDTO scenicSpotDTO) {
-        log.info("管理员新增景点: {}", scenicSpotDTO);
+        log.info("📡 管理员发起新增景点请求，内容载荷: {}", scenicSpotDTO);
+
+        // 1. 强力业务边界校验
+        if (scenicSpotDTO.getName() == null || scenicSpotDTO.getName().isBlank()) {
+            return Result.error(400, "景点名称不能为空");
+        }
+        if (scenicSpotDTO.getLatitude() == null || scenicSpotDTO.getLongitude() == null) {
+            return Result.error(400, "电子围栏中心经纬度坐标不能为空");
+        }
+        if (scenicSpotDTO.getRadius() == null || scenicSpotDTO.getRadius() <= 0) {
+            return Result.error(400, "感应半径必须大于0米");
+        }
+
+        // 2. 派发给业务层执行标准生命周期
         adminScenicSpotService.saveWithFields(scenicSpotDTO);
         return Result.success("新增成功");
     }
@@ -35,7 +47,7 @@ public class AdminScenicSpotController {
     @Operation(summary = "根据ID查询景点详情")
     public Result<ScenicSpot> getById(@RequestParam Long id) {
         log.info("📡 管理员请求获取景点详情进行编辑，目标ID: {}", id);
-        ScenicSpotDTO scenicSpot = adminScenicSpotService.getById(id);
+        ScenicSpot scenicSpot = adminScenicSpotService.getById(id);
         if (scenicSpot == null) {
             return Result.error(404, "该景点不存在或已被删除");
         }

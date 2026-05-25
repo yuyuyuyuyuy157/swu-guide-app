@@ -35,14 +35,22 @@ public class AdminScenicSpotServiceImpl implements AdminScenicSpotService {
     }
 
     @Override
-    @Transactional // 开启事务控制
+    @Transactional(rollbackFor = Exception.class) // 🎯 空间地理操作涉及多级校验，开启声明式事务控制
+    @com.nav.annotation.AutoFill(value = com.nav.enumeration.OperationType.INSERT) // 🎯 挂载苍穹核心审计切面
     public void saveWithFields(ScenicSpotDTO scenicSpotDTO) {
-        ScenicSpot scenicSpot = new ScenicSpot();
-        BeanUtils.copyProperties(scenicSpotDTO, scenicSpot);
-        scenicSpot.setIsDeleted(0); // 默认未删除
+        log.info("🎯 开始执行保存景点业务，表单清洗中...");
 
-        // 核心：调用具有 @AutoFill 审计注解的 Mapper 方法
+        // 1. 契约重组：将前端 DTO 对象深度拷贝至数据库 Entity
+        ScenicSpot scenicSpot = new ScenicSpot();
+        org.springframework.beans.BeanUtils.copyProperties(scenicSpotDTO, scenicSpot);
+
+        // 2. 状态固化：默认置为未删除状态（0）
+        scenicSpot.setIsDeleted(0);
+
+        // 3. 递交给持有空间计算能力的专用持久层进行写入
         adminScenicSpotMapper.insert(scenicSpot);
+
+        log.info("🔑 景点 [名称: {}] 成功落库，空间位置索引与审计轨迹已全部激活。", scenicSpot.getName());
     }
 
     @Override

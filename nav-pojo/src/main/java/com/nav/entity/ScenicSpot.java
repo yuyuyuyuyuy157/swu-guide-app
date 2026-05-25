@@ -32,7 +32,7 @@ public class ScenicSpot {
 
     private Integer radius;
     private Long updatedBy;
-
+    private Long createdBy;
     @TableLogic
     private Integer isDeleted;
 

@@ -7,6 +7,7 @@ import java.util.List;
 import com.nav.entity.ScenicSpot;
 
 public interface AdminScenicSpotService {
+    //新增景点
     void saveWithFields(ScenicSpotDTO scenicSpotDTO);
     //根据ID查询景点详细数据
     ScenicSpot getById(Long id);
