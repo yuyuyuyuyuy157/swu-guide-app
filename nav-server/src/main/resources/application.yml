@@ -52,3 +52,15 @@ springdoc:
 baidu:
   map:
     ak: hw3a0UxUnQ6mHkEJPC7WcKxrJNA0s3Ap
+
+nav:
+  jwt:
+    # 管理端配置
+    admin-secret-key: swuGuideAdminSecretKeyValid2026 # 签名密钥（生产环境记得修改）
+    admin-ttl: 86400000                              # 令牌有效期：24小时（毫秒）
+    admin-token-name: Authorization                  # 严格对齐接口文档的全局请求头字段名
+
+    # 用户端配置（留作后续用户模块扩展）
+    user-secret-key: swuGuideUserSecretKeyValid2026
+    user-ttl: 2592000000                             # 用户端通常较长，如30天
+    user-token-name: Authorization

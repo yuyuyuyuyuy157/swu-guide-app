@@ -11,7 +11,7 @@ public interface UserService {
     // 用户登录
     UserLoginVO login(UserLoginDTO userLoginDTO);
     //管理员登录
-    public AdminLoginVO adminLogin(AdminLoginDTO adminLoginDTO);
+    AdminLoginVO adminLogin(AdminLoginDTO adminLoginDTO);
     // 用户注册
     void register(UserRegisterDTO userRegisterDTO);
     // 用户信息展示
