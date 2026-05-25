@@ -58,7 +58,7 @@ public class UserController {
 
         // 2. 调用业务层
         userService.changePassword(userEditPasswordDTO);
-        return Result.success("密码修改成功");
+        return Result.success();
     }
 
 }
