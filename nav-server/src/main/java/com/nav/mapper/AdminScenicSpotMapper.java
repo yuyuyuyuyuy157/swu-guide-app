@@ -12,7 +12,7 @@ import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface AdminScenicSpotMapper {
-
+    
     /**
      * 管理端联合查询（左连接管理员表，查出修改人名字）
      */
@@ -38,4 +38,6 @@ public interface AdminScenicSpotMapper {
      */
     @Update("update scenic_spots set is_deleted = 1 where id = #{id}")
     void softDeleteById(Long id);
+
+
 }

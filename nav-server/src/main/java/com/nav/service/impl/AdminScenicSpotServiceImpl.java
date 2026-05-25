@@ -13,7 +13,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -24,9 +23,13 @@ public class AdminScenicSpotServiceImpl implements AdminScenicSpotService {
 
     @Override
     public PageResult pageQuery(ScenicSpotPageQueryDTO pageQueryDTO) {
+        // 1. 开启 PageHelper 分页拦截器（必须在执行 SQL 的上一行调用）
         PageHelper.startPage(pageQueryDTO.getPage(), pageQueryDTO.getPageSize());
-        // 专门供管理端查询的持久层方法
+
+        // 2. 调用管理端专用的持久层联合查询方法
         Page<AdminScenicSpotVO> page = adminScenicSpotMapper.pageQuery(pageQueryDTO);
+
+        // 3. 组装返回，包含 total（总条数）和 result（清洗后的联合查询 VO 列表）
         return new PageResult(page.getTotal(), page.getResult());
     }
 
@@ -64,9 +67,10 @@ public class AdminScenicSpotServiceImpl implements AdminScenicSpotService {
     @Override
     @Transactional
     public void deleteBatch(List<Long> ids) {
-        // 苍穹标准：企业级系统严禁物理删除，一律使用软删除（把 is_deleted 字段改为 1）
+        // 企业级系统严禁物理删除，一律使用软删除（把 is_deleted 字段改为 1）
         for (Long id : ids) {
             adminScenicSpotMapper.softDeleteById(id);
         }
     }
+
 }
