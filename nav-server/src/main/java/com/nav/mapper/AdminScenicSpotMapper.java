@@ -7,12 +7,15 @@ import com.nav.entity.ScenicSpot;
 import com.nav.enumeration.OperationType;
 import com.nav.vo.AdminScenicSpotVO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
+
 @Mapper
 public interface AdminScenicSpotMapper {
-    
+
     /**
      * 管理端联合查询（左连接管理员表，查出修改人名字）
      */
@@ -36,8 +39,7 @@ public interface AdminScenicSpotMapper {
     /**
      * 软删除核心语句
      */
-    @Update("update scenic_spots set is_deleted = 1 where id = #{id}")
-    void softDeleteById(Long id);
+    void softDeleteByIds(@Param("ids") List<Long> ids);
 
 
 }

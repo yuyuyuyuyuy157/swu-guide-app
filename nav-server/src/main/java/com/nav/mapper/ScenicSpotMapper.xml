@@ -40,4 +40,15 @@
         </where>
         ORDER BY s.updated_at DESC
     </select>
+
+    <update id="softDeleteByIds">
+        UPDATE scenic_spots
+        SET
+        is_deleted = 1,
+        updated_at = NOW()  WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND is_deleted = 0
+    </update>
 </mapper>

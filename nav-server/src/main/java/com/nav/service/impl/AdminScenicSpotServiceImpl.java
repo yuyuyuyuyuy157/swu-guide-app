@@ -14,7 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
-
+import lombok.extern.slf4j.Slf4j;
+@Slf4j
 @Service
 public class AdminScenicSpotServiceImpl implements AdminScenicSpotService {
 
@@ -65,12 +66,12 @@ public class AdminScenicSpotServiceImpl implements AdminScenicSpotService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class) // 🎯涉及多条数据变更，必须开启事务，保证原子性
     public void deleteBatch(List<Long> ids) {
-        // 企业级系统严禁物理删除，一律使用软删除（把 is_deleted 字段改为 1）
-        for (Long id : ids) {
-            adminScenicSpotMapper.softDeleteById(id);
-        }
+        log.info(" 开始执行批量软删除业务，级联核销 IDs: {}", ids);
+
+        // 核心优化：直接一行代码，把集合传给 Mapper 依靠动态拼装 SQL 一次性核销
+        adminScenicSpotMapper.softDeleteByIds(ids);
     }
 
 }

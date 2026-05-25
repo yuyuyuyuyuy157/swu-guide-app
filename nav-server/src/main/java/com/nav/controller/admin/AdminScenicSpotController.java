@@ -47,9 +47,14 @@ public class AdminScenicSpotController {
     }
 
     @DeleteMapping
-    @Operation(summary = "管理端删除景点（单个/批量）")
+    @Operation(summary = "批量软删除景点路线")
     public Result<String> delete(@RequestParam List<Long> ids) {
-        log.info("管理员批量删除景点，IDs: {}", ids);
+        log.info("管理员触发高危操作：批量软删除景点，目标 IDs: {}", ids);
+        // 1. 基础边界拦截
+        if (ids == null || ids.isEmpty()) {
+            return Result.error(400, "请至少选择一项进行删除");
+        }
+        // 2. 调用业务层进行批量异步核销
         adminScenicSpotService.deleteBatch(ids);
         return Result.success("删除成功");
     }
