@@ -51,4 +51,23 @@
         </foreach>
         AND is_deleted = 0
     </update>
+
+    <update id="update">
+        UPDATE scenic_spots
+        <set>
+            <if test="name != null and name != ''">
+                name = #{name},
+            </if>
+            <if test="description != null and description != ''">
+                description = #{description},
+            </if>
+            <if test="updatedAt != null">
+                updated_at = #{updatedAt},
+            </if>
+            <if test="updatedBy != null">
+                updated_by = #{updatedBy},
+            </if>
+        </set>
+        WHERE id = #{id}
+        AND is_deleted = 0 </update>
 </mapper>

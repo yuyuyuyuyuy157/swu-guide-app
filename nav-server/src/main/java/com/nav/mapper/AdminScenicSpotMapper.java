@@ -27,13 +27,12 @@ public interface AdminScenicSpotMapper {
     @AutoFill(OperationType.INSERT)
     void insert(ScenicSpot scenicSpot);
 
-    /**
-     * 自动审计注入：修改景点
-     */
+    // 自动审计注入：修改景点
     @AutoFill(OperationType.UPDATE)
     void update(ScenicSpot scenicSpot);
-
-    @Select("select id, name, description, image_url, audio_url, latitude, longitude, radius from scenic_spots where id = #{id} and is_deleted = 0")
+    // 根据ID查询景点详情
+    @Select("SELECT id, name, description, updated_at, updated_by, is_deleted " +
+            "FROM scenic_spots WHERE id = #{id} AND is_deleted = 0")
     ScenicSpot getById(Long id);
 
     /**

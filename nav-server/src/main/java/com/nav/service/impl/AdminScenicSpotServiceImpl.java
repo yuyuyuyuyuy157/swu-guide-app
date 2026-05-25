@@ -46,23 +46,27 @@ public class AdminScenicSpotServiceImpl implements AdminScenicSpotService {
     }
 
     @Override
-    public ScenicSpotDTO getById(Long id) {
-        ScenicSpot spot = adminScenicSpotMapper.getById(id);
-        ScenicSpotDTO dto = new ScenicSpotDTO();
-        if (spot != null) {
-            BeanUtils.copyProperties(spot, dto);
-        }
-        return dto;
+    public ScenicSpot getById(Long id) {
+        log.info("开始执行根据ID查询景点详情，ID: {}", id);
+        // 调用持久层，查询未被软删除的有效景点
+        return adminScenicSpotMapper.getById(id);
     }
-
+    // 修改景点核心内容及关联路径锚点
     @Override
-    @Transactional
-    public void updateWithFields(ScenicSpotDTO scenicSpotDTO) {
-        ScenicSpot scenicSpot = new ScenicSpot();
-        BeanUtils.copyProperties(scenicSpotDTO, scenicSpot);
+    @Transactional(rollbackFor = Exception.class) // 涉及数据变更，必须开启声明式事务
+    @com.nav.annotation.AutoFill(value = com.nav.enumeration.OperationType.UPDATE) // 🎯 触发苍穹公共字段自动填充切面
+    public void updateWithRoute(ScenicSpotDTO scenicSpotDTO) {
+        log.info("开始执行修改景点业务，目标景点ID: {}", scenicSpotDTO.getId());
 
-        // 调用具有 @AutoFill 审计注解的修改方法
+        // 1. 结构转换：将 DTO 拷贝至 Entity
+        ScenicSpot scenicSpot = new ScenicSpot();
+        org.springframework.beans.BeanUtils.copyProperties(scenicSpotDTO, scenicSpot);
+
+
+        // 2. 执行持久层动态 SQL 更新
         adminScenicSpotMapper.update(scenicSpot);
+
+        log.info("🔑 景点主表数据更新完毕，审计信息已自动填充。");
     }
 
     @Override

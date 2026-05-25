@@ -2,6 +2,7 @@ package com.nav.controller.admin;
 
 import com.nav.dto.ScenicSpotDTO;
 import com.nav.dto.ScenicSpotPageQueryDTO;
+import com.nav.entity.ScenicSpot;
 import com.nav.result.PageResult;
 import com.nav.result.Result;
 import com.nav.service.AdminScenicSpotService;
@@ -30,19 +31,27 @@ public class AdminScenicSpotController {
     }
 
 
-    @GetMapping("/detail/{id}")
-    @Operation(summary = "管理端获取景点详情（用于回显编辑）")
-    public Result<ScenicSpotDTO> getById(@PathVariable Long id) {
-        log.info("管理员获取景点详情，ID: {}", id);
-        ScenicSpotDTO dto = adminScenicSpotService.getById(id);
-        return Result.success(dto);
+    @GetMapping("/detail")
+    @Operation(summary = "根据ID查询景点详情")
+    public Result<ScenicSpot> getById(@RequestParam Long id) {
+        log.info("📡 管理员请求获取景点详情进行编辑，目标ID: {}", id);
+        ScenicSpotDTO scenicSpot = adminScenicSpotService.getById(id);
+        if (scenicSpot == null) {
+            return Result.error(404, "该景点不存在或已被删除");
+        }
+        return Result.success(scenicSpot);
     }
 
     @PutMapping
-    @Operation(summary = "管理端修改景点")
+    @Operation(summary = "修改景点路线信息")
     public Result<String> update(@RequestBody ScenicSpotDTO scenicSpotDTO) {
-        log.info("管理员修改景点: {}", scenicSpotDTO);
-        adminScenicSpotService.updateWithFields(scenicSpotDTO);
+        log.info("📡 管理员提交修改景点数据，载荷: {}", scenicSpotDTO);
+
+        if (scenicSpotDTO.getId() == null) {
+            return Result.error(400, "景点ID不能为空");
+        }
+
+        adminScenicSpotService.updateWithRoute(scenicSpotDTO);
         return Result.success("修改成功");
     }
 
