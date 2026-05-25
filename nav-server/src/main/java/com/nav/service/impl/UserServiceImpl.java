@@ -145,7 +145,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class) // 涉及核心凭证变更，开启事务
-    public void updatePassword(UserEditPasswordDTO dto) {
+    public void changePassword(UserEditPasswordDTO dto) {
         // 🎯 核心高阶操作：直接从当前线程的 ThreadLocal 中盲抠出被拦截器注入的当前登录用户 ID
         Long currentUserId = com.nav.context.BaseContext.getCurrentId();
 

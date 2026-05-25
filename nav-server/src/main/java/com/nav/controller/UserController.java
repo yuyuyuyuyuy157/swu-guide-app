@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
+import com.nav.dto.UserEditPasswordDTO;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/user")
@@ -43,4 +43,22 @@ public class UserController {
         log.info("获取用户信息，用户ID: {}", userId);
         return Result.success(userService.getCurrentInfo(userId));
     }
+
+    @PostMapping("/change-password") // 路径与接口文档严格对齐：/api/v1/user/change-password [cite: 49]
+    public Result<Void> changePassword(@RequestBody UserEditPasswordDTO userEditPasswordDTO) {
+        log.info("用户触发修改密码业务，请求ID: {}", userEditPasswordDTO.getRequestId());
+
+        // 1. 基础边界校验
+        if (userEditPasswordDTO.getOldPassword() == null || userEditPasswordDTO.getNewPassword() == null) {
+            return Result.error(400,"原密码或新密码不能为空");
+        }
+        if (!userEditPasswordDTO.getNewPassword().equals(userEditPasswordDTO.getConfirmNewPassword())) {
+            return Result.error(400,"两次输入的新密码不一致"); // 满足文档“必须与new_password一致”的约束
+        }
+
+        // 2. 调用业务层
+        userService.changePassword(userEditPasswordDTO);
+        return Result.success("密码修改成功");
+    }
+
 }

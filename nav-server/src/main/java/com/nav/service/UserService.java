@@ -17,5 +17,5 @@ public interface UserService {
     // 用户信息展示
     UserVO getCurrentInfo(Long userId);
     // 用户修改当前密码
-    void updatePassword(UserEditPasswordDTO dto);
+    void changePassword(UserEditPasswordDTO dto);
 }

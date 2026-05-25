@@ -17,5 +17,9 @@ public class UserEditPasswordDTO {
     @NotBlank(message = "新密码不能为空")
     @Pattern(regexp = "^\\S{8,16}$", message = "新密码必须为8-16位且不能包含空格")
     private String newPassword;
+
+    @Schema(description = "客户端生成的唯一UUID", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "request_id 不能为空")
+    private String requestId;
 }
 
