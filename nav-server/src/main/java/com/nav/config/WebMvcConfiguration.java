@@ -46,7 +46,9 @@ public class WebMvcConfiguration implements WebMvcConfigurer { // 改为实现�
                 .excludePathPatterns(
                         "/api/v1/user/login",
                         "/api/v1/user/register",
-                        "/api/v1/scenic/detail/**", // 🎯 核心修正：完美放行用户端详情页的动态 ID 路径！
+                        "/api/v1/scenic/detail/**", // 用户端详情
+                        "/api/v1/scenic/list",      // 用户端列表也应放行
+                        "/download/**",             // 必须放行静态文件映射路径，否则前端加载不出图片！
                         "/doc.html",
                         "/webjars/**",
                         "/v3/api-docs/**"

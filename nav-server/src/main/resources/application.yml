@@ -30,6 +30,10 @@ spring:
       port: 6379
       database: 0
       timeout: 5000ms
+  servlet:
+    multipart:
+      max-file-size: 10MB       # 单个文件最大限制（放宽至 10MB，适应高清图和MP3）
+      max-request-size: 50MB    # 单次请求总计最大限制
 
 mybatis-plus:
   configuration:
