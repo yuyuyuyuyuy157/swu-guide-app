@@ -1,7 +1,9 @@
 package com.nav.service.impl;
 
 //核心框架与事务依赖
+import com.nav.dto.*;
 import com.nav.utils.JwtUtil;
+import com.nav.vo.UserAudioSettingVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,8 +17,6 @@ import cn.hutool.crypto.SecureUtil; // 用于进行加盐 MD5 加密
 
 // 跨模块同胞组件依赖 (来自 common 和 pojo)
 import com.nav.constant.MessageConstant;
-import com.nav.dto.UserLoginDTO;
-import com.nav.dto.UserRegisterDTO;
 import com.nav.entity.User;
 import com.nav.exception.PhoneAlreadyExistsException;      // 自定义手机号重复异常
 import com.nav.exception.InvalidInvitationCodeException;  // 自定义邀请码非法异常
@@ -25,10 +25,8 @@ import com.nav.mapper.InvitationCodeMapper; //新引入的邀请码核销持久�
 import com.nav.service.UserService;
 import com.nav.vo.UserLoginVO;
 import com.nav.vo.UserVO;
-import com.nav.dto.UserEditPasswordDTO;
 import com.nav.properties.JwtProperties; // 企业级配置解耦属性类
 import com.nav.vo.AdminLoginVO;
-import com.nav.dto.AdminLoginDTO;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -229,6 +227,47 @@ public class UserServiceImpl implements UserService {
                 .token(token)
                 .adminId(admin.getId().toString())
                 .name("高级管理员(" + username.substring(0, 3) + ")") // 模拟审计名
+                .build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAudioSetting(Long userId, UserAudioSettingDTO dto) {
+        log.info("🎯 开始动态更新用户偏好设置，用户ID: {}", userId);
+
+        // 健壮性防线：先校验用户是否存在
+        User user = userMapper.selectById(userId); // 假设你已有 getById 方法
+        if (user == null) {
+            throw new com.nav.exception.BaseException("用户账户不存在");
+        }
+
+        // 组装更新实体
+        User updateEntity = User.builder()
+                .id(userId)
+                .playMode(dto.getPlayMode())
+                .autoPlay(dto.getAutoPlay())
+                .build();
+
+        // 调用持久层的动态 SQL 更新方法（类似于你之前写的阿里的 update 动态语法）
+        userMapper.updateById(updateEntity);
+        log.info("✅ 用户ID: {} 的音频设置已成功持久化落库。", userId);
+    }
+
+    @Override
+    public UserAudioSettingVO getAudioSetting(Long userId) {
+        log.info("🎯 开始调取用户配置数据，用户ID: {}", userId);
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new com.nav.exception.BaseException("用户账户不存在");
+        }
+
+        // 兜底策略：如果数据库中字段字段为空（新注册用户），赋予标准默认值
+        Integer playMode = user.getPlayMode() != null ? user.getPlayMode() : 0; // 默认随位置切
+        Integer autoPlay = user.getAutoPlay() != null ? user.getAutoPlay() : 1; // 默认开启自动播放
+
+        return UserAudioSettingVO.builder()
+                .playMode(playMode)
+                .autoPlay(autoPlay)
                 .build();
     }
 }

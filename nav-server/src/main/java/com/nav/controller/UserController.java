@@ -1,9 +1,11 @@
 package com.nav.controller;
 
+import com.nav.context.BaseContext;
 import com.nav.dto.UserLoginDTO;
 import com.nav.dto.UserRegisterDTO;
 import com.nav.result.Result;
 import com.nav.service.UserService;
+import com.nav.vo.UserAudioSettingVO;
 import com.nav.vo.UserLoginVO;
 import com.nav.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -59,6 +61,36 @@ public class UserController {
         // 2. 调用业务层
         userService.changePassword(userEditPasswordDTO);
         return Result.success();
+    }
+
+    @PutMapping("/setting/audio")
+    @Operation(summary = "保存用户音频播放设置")
+    public Result<String> saveAudioSetting(@RequestBody UserAudioSettingDTO userAudioSettingDTO) {
+        // 从 ThreadLocal 中安全捞取当前登录用户 ID
+        Long userId = BaseContext.getCurrentId();
+        log.info("📡 收到保存音频设置请求，用户ID: {}, 载荷: {}", userId, userAudioSettingDTO);
+
+        // 参数校验
+        if (userAudioSettingDTO.getPlayMode() == null || userAudioSettingDTO.getAutoPlay() == null) {
+            return Result.error(400, "参数校验失败：配置项不能为空");
+        }
+
+        userService.updateAudioSetting(userId, userAudioSettingDTO);
+        return Result.success("设置保存成功");
+    }
+
+    /**
+     * 🎯 获取用户音频播放设置
+     * 接口路径：GET /api/v1/user/setting/audio
+     */
+    @GetMapping("/setting/audio")
+    @Operation(summary = "获取用户音频播放设置")
+    public Result<UserAudioSettingVO> getAudioSetting() {
+        Long userId = BaseContext.getCurrentId();
+        log.info("📡 收到获取音频设置请求，用户ID: {}", userId);
+
+        UserAudioSettingVO userAudioSettingVO = userService.getAudioSetting(userId);
+        return Result.success(userAudioSettingVO);
     }
 
 }
