@@ -2,6 +2,7 @@ package com.nav.dto;
 
 import lombok.Data;
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class ScenicSpotDTO implements Serializable {
@@ -13,4 +14,5 @@ public class ScenicSpotDTO implements Serializable {
     private Double latitude;    // 纬度
     private Double longitude;   // 经度
     private Integer radius;     // 电子围栏半径（米）
+    private List<String> images;
 }

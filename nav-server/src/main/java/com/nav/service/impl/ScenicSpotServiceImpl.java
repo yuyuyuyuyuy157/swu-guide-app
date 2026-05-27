@@ -2,6 +2,7 @@ package com.nav.service.impl;
 
 import com.nav.dto.CurrentLocationDTO;
 import com.nav.entity.ScenicSpot;
+import com.nav.mapper.ScenicImageMapper;
 import com.nav.mapper.ScenicSpotMapper;
 import com.nav.service.ScenicSpotService;
 import com.nav.vo.ScenicSpotVO;
@@ -22,7 +23,9 @@ public class ScenicSpotServiceImpl implements ScenicSpotService {
 
     @Autowired
     private ScenicSpotMapper scenicSpotMapper;
+    @Autowired
     private AdminScenicSpotMapper adminScenicSpotMapper;
+
     @Override
     public ScenicSpotVO getCurrentScenic(CurrentLocationDTO currentLocationDTO) {
         log.info("开始计算当前位置的附近景点: {}", currentLocationDTO);
