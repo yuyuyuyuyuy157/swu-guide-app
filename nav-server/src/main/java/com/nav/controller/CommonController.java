@@ -3,6 +3,7 @@ package com.nav.controller;
 import com.nav.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +34,8 @@ public class CommonController {
      * @param file 前端表单传来的文件对象 (字段名需对齐前端，通常为 file)
      * @return 文件的网络访问 URL
      */
+    @Value("${app.upload.base-url}")
+    private String baseUrl;
     @PostMapping("/upload")
     @Operation(summary = "通用文件上传")
     public Result<String> upload(MultipartFile file) {
@@ -64,7 +67,7 @@ public class CommonController {
             // 5. 🎯 拼接网络访问 URL
             // 结合 WebMvcConfiguration 中的 registry.addResourceHandler("/download/**") 映射
             // 这里的域名在生产环境中应替换为真实的 https://api.swu-guide-app.com/
-            String fileUrl = "http://localhost:8080/download/" + newFileName;
+            String fileUrl = baseUrl + newFileName;
 
             log.info("🔑 文件保存成功！已映射为网络地址: {}", fileUrl);
 

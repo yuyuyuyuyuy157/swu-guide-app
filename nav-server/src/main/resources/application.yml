@@ -68,3 +68,15 @@ nav:
     user-secret-key: swuGuideUserSecretKeyValid2026
     user-ttl: 2592000000                             # 用户端通常较长，如30天
     user-token-name: Authorization
+
+app:
+  upload:
+    # 物理存储路径（注意末尾保留斜杠）
+    dir: D:/nav-uploads/
+    # 网络访问前缀（注意末尾保留斜杠）
+    base-url: http://localhost:8080/download/
+  baidu:
+    tts:
+      app-id: "7795410"
+      api-key: "vo6Xg8gXFKbicjtxbEkQC4uC"
+      secret-key: "2bjIhX160F02rEozfI9M5UD2mOU0PVG9"
