@@ -1,0 +1,146 @@
+/* ============================================================
+   西南大学智慧导览 — 设计 Token（仅变量+动画，不碰布局）
+   ============================================================ */
+
+:root {
+  /* ---- 品牌色系 ---- */
+  --color-primary: #176b87;
+  --color-primary-light: #2f8fa8;
+  --color-primary-dark: #0f4d64;
+  --color-primary-bg: #e7f5f8;
+  --color-success: #2f9e6d;
+  --color-success-bg: #e8f7ef;
+  --color-danger: #d84242;
+  --color-danger-bg: #fff0ed;
+  --color-warning: #d58a22;
+
+  /* ---- 渐变 ---- */
+  --gradient-primary: linear-gradient(135deg, #176b87 0%, #2f9e6d 100%);
+  --gradient-ai: linear-gradient(135deg, #5f6caf 0%, #1f7a8c 100%);
+
+  /* ---- 中性色 ---- */
+  --color-bg: #f4f7f6;
+  --color-surface: #ffffff;
+  --color-surface-soft: #fbfdfc;
+  --color-text: #17252a;
+  --color-text-secondary: #50666d;
+  --color-text-muted: #8b9ca2;
+  --color-border: #dfe8e8;
+
+  /* ---- 间距 ---- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* ---- 圆角 ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-full: 9999px;
+
+  /* ---- 阴影 ---- */
+  --shadow-sm: 0 1px 3px rgba(23,37,42,0.06);
+  --shadow-md: 0 8px 20px rgba(23,37,42,0.10);
+  --shadow-lg: 0 16px 34px rgba(23,37,42,0.14);
+  --shadow-card: 0 10px 26px rgba(23,37,42,0.09);
+  --shadow-float: 0 10px 26px rgba(23,107,135,0.24);
+
+  /* ---- 字体 ---- */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-xs: 11px;
+  --font-sm: 13px;
+  --font-md: 15px;
+  --font-lg: 18px;
+  --font-xl: 22px;
+  --font-2xl: 28px;
+
+  /* ---- 动效 ---- */
+  --ease-out: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 0.15s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+
+  --van-primary-color: var(--color-primary);
+  --van-success-color: var(--color-success);
+  --van-danger-color: var(--color-danger);
+  --van-warning-color: var(--color-warning);
+  --van-text-color: var(--color-text);
+  --van-text-color-2: var(--color-text-secondary);
+  --van-text-color-3: var(--color-text-muted);
+  --van-background: var(--color-bg);
+  --van-background-2: var(--color-surface);
+  --van-border-color: var(--color-border);
+}
+
+/* ---- 全局基础 ---- */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-family);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+.van-button--primary {
+  --van-button-primary-background: var(--color-primary);
+  --van-button-primary-border-color: var(--color-primary);
+}
+
+.van-nav-bar {
+  --van-nav-bar-background: rgba(255,255,255,0.96);
+  --van-nav-bar-title-text-color: var(--color-text);
+  --van-nav-bar-icon-color: var(--color-primary);
+  --van-nav-bar-text-color: var(--color-primary);
+}
+
+.van-cell-group--inset {
+  margin-left: var(--space-md);
+  margin-right: var(--space-md);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.van-field__label {
+  color: var(--color-text-secondary);
+}
+
+/* ---- 通用动画 ---- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---- 骨架屏 ---- */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

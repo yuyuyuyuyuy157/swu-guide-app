@@ -1,0 +1,66 @@
+server:
+  port: 8080 # 指定Tomcat的监听端口
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: nav-server # 名称
+  threads:
+    virtual:
+      enabled: true # 开启虚拟线程
+  # 数据库连接池
+  datasource:
+    druid:
+      driver-class-name: ${nav.datasource.driver-class-name}
+      url: jdbc:mysql://${nav.datasource.host}:${nav.datasource.port}/${nav.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+      username: ${nav.datasource.username}
+      password: ${nav.datasource.password}
+      # 初始化时建立物理连接的个数、最小空闲连接数、最大活跃连接数
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      # 获取连接时最大等待时长（毫秒）
+      max-wait: 60000
+      filters: stat,wall
+  # 缓存与非关系数据库redis配置
+#  data:
+#    redis:
+#      host: localhost
+#      port: 6379
+#      database: 0
+#      timeout: 5000ms
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true # 开启驼峰命名自动转换——数据库字段为下划线，java实体类为驼峰
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 日志设置
+  global-config:
+    db-config:
+      id-type: assign_id
+
+logging:
+  file:
+    name:nav-server.log
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs # 原始的 OpenAPI 元数据路径
+
+  packages-to-scan: com.nav.controller # 严格指定只扫描业务模块下的控制器包
+
+baidu:
+  map:
+    ak: hw3a0UxUnQ6mHkEJPC7WcKxrJNA0s3Ap
+
+nav:
+  system:
+    default-latitude: 29.815
+    default-longitude: 106.425
+    default-scenic-id: "1"
+    user-agreement-url: https://swu-guide-app.com/agreement
+    privacy-policy-url: https://swu-guide-app.com/privacy
