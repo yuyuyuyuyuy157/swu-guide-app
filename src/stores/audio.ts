@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { showLoadingToast, showToast } from 'vant'
 import request from '../utils/request'
+import { resolveResourceUrl } from '../utils/url'
 import type { AudioSettings, ScenicSpot } from '../types/api'
 
 const audio = new Audio()
@@ -87,7 +88,7 @@ export const useAudioStore = defineStore('audio', {
           params: { audioId: spot.audioId }
         })) as any
 
-        audio.src = detailData.audioUrl
+        audio.src = resolveResourceUrl(detailData.audioUrl)
         audio.playbackRate = this.settings.playSpeed
 
         if (detailData.lastProgress > 0 && detailData.lastProgress < detailData.duration) {

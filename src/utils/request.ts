@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { showToast } from 'vant'
+import { API_BASE_URL, normalizeResourceUrls } from './url'
 
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -16,13 +17,13 @@ if (!deviceId) {
 }
 
 const request = axios.create({
-  baseURL: '/api/v1',
+  baseURL: API_BASE_URL,
   timeout: 10000
 })
 
 request.interceptors.request.use((config) => {
   config.headers['App-Version'] = '1.0.0'
-  config.headers['Platform'] = 'H5'
+  config.headers['Platform'] = location.protocol === 'capacitor:' ? 'Android' : 'H5'
   config.headers['Device-ID'] = deviceId
 
   const token = localStorage.getItem('SWU_TOKEN')
@@ -48,7 +49,7 @@ request.interceptors.response.use(
       showToast(res.message || '系统繁忙')
       return Promise.reject(new Error(res.message || 'Error'))
     }
-    return res.data
+    return normalizeResourceUrls(res.data)
   },
   (error) => {
     const status = error.response?.status

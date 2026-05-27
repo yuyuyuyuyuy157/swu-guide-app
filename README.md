@@ -335,17 +335,22 @@ nav-take-out-master/nav-server/src/main/java/com/nav/service/impl/
 
 ## 后续做成 App 的建议路线
 
-当前项目最适合先用 H5 方式稳定功能，再用 Capacitor 打包 Android App：
+当前项目已加入 Capacitor 基础配置，详细步骤见：
+
+```text
+ANDROID_APP_GUIDE.md
+```
+
+核心流程：
 
 ```powershell
 npm install @capacitor/core @capacitor/cli @capacitor/android
-npx cap init swu-guide com.swu.guide --web-dir=dist
 npm run build
-npx cap add android
-npx cap open android
+npm run cap:add:android
+npm run cap:open:android
 ```
 
 打包 App 前要先解决两个问题：
 
-- 后端接口地址不能再写 `localhost`，需要改成电脑局域网 IP、服务器地址或可配置环境变量。
+- 复制 `.env.app.example` 为 `.env.production`，把后端接口地址改成电脑局域网 IP 或服务器地址。
 - 定位、语音播放、图片上传在 App WebView 中需要额外检查权限。
