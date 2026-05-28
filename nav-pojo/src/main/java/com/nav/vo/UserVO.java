@@ -21,6 +21,9 @@ public class UserVO{
     @Schema(description="当前头像URL")
     private String avatar;
 
+    @Schema(description = "注册时间")
+    private String createTime;
+
     @Schema(description = "账户角色")
     private String role;
 

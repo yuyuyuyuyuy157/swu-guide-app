@@ -75,6 +75,9 @@ nav:
       default-scenic-id: "1"           # 默认初始加载的景点ID（如共青团花园）
       user-agreement-url: https://api.swu-guide-app.com/agreements/user.html
       privacy-policy-url: https://api.swu-guide-app.com/agreements/privacy.html
+
+  base-path: D:/upload/
+  url-prefix: http://localhost:8080/static/avatars/
 app:
   upload:
     # 物理存储路径（注意末尾保留斜杠）

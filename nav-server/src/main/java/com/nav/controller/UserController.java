@@ -6,6 +6,7 @@ import com.nav.dto.UserRegisterDTO;
 import com.nav.result.Result;
 import com.nav.service.UserService;
 import com.nav.vo.UserAudioSettingVO;
+import com.nav.vo.UserAvatarVO;
 import com.nav.vo.UserLoginVO;
 import com.nav.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,11 +41,43 @@ public class UserController {
         return Result.success("注册成功");
     }
 
-    @GetMapping("/info/{userId}")
+    @GetMapping("/profile")
     @Operation(summary = "获取当前登录用户信息")
-    public Result<UserVO> getCurrentInfo(@PathVariable Long userId) {
-        log.info("获取用户信息，用户ID: {}", userId);
-        return Result.success(userService.getCurrentInfo(userId));
+    public Result<UserVO> getCurrentInfo() {
+        // 核心安全防线：拒绝信任前端传入的任意 ID，一律从 ThreadLocal 中捞取经过 JWT 拦截器鉴权后的合法用户 ID
+        Long userId = BaseContext.getCurrentId();
+        log.info("📡 收到获取当前登录用户信息请求，安全上下文中解析出的用户ID: {}", userId);
+
+        // 调度业务层，内部依然是用该 userId 去查询数据库
+        UserVO userVO = userService.getCurrentInfo(userId);
+        return Result.success(userVO);
+    }
+
+    @PostMapping(value = "/upload-avatar", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "上传用户头像")
+    public Result<UserAvatarVO> uploadAvatar(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("request_id") String requestId) {
+
+        // 从拦截器上下文中获取当前登录用户 ID
+        Long userId = BaseContext.getCurrentId();
+        log.info("📡 收到上传头像请求，用户ID: {}, RequestID: {}", userId, requestId);
+
+        // 1. 边界防御控制：空文件拦截
+        if (file == null || file.isEmpty()) {
+            return Result.error(400, "上传失败：请选择有效的图片文件");
+        }
+
+        // 2. 严格契约约束：头像大小不能超过 2MB
+        if (file.getSize() > 2 * 1024 * 1024) {
+            return Result.error(400, "上传失败：头像文件大小不能超过 2MB");
+        }
+
+        // 3. 调用业务层执行本地落盘
+        UserAvatarVO userAvatarVO = userService.uploadAvatar(userId, file);
+
+        log.info("头像上传流处理完毕，成功为用户 {} 生成新头像路径", userId);
+        return Result.success(userAvatarVO);
     }
 
     @PostMapping("/change-password") // 路径与接口文档严格对齐：/api/v1/user/change-password [cite: 49]

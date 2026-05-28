@@ -24,10 +24,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
 @Service
@@ -141,19 +146,36 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     @Override
     public UserVO getCurrentInfo(Long userId) {
-        // 🎯 修正：摒弃已删除的 is_deleted 拦截断言，直接根据主键索取
-        User user = this.getById(userId);
+        // 1. 根据主键查询数据库实体
+        User user = userMapper.selectById(userId); // 假设你用的是 MyBatis-Plus 的自带方法，或者你原生的 getById
         if (user == null) {
-            throw new BaseException("用户账户不存在或已被注销");
+            throw new BaseException("未能查询到当前用户信息");
         }
 
-        String displayPhone = user.getPhone().replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2");
+        // 2. 🎯 核心逻辑一：手机号高敏感数据脱敏（13812345678 -> 138****5678）
+        String rawPhone = user.getPhone();
+        String maskedPhone = "未知手机号";
+        if (rawPhone != null && rawPhone.length() == 11) {
+            // 利用正则表达式，保留前3后4，中间替换为星号
+            maskedPhone = rawPhone.replaceAll("(\\d{3})\\d{4}(\\d{4})", "$1****$2");
+        }
 
+        // 3. 🎯 核心逻辑二：将 LocalDateTime 转换为前端易读的字符串格式
+        String formattedCreateTime = "";
+        if (user.getCreatedAt() != null) {
+            formattedCreateTime = user.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
+
+        // 4. 🎯 核心逻辑三：安全拼装 VO 下发
         return UserVO.builder()
-                .userId(user.getId().toString())
-                .phone(displayPhone)
-                .avatar(user.getAvatarUrl() != null ? user.getAvatarUrl() : "https://api.swu-guide-app.com/static/default-avatar.png")
-                .role(user.getRole())
+                // 必须转为 String，防止 Long 型雪花算法 ID 传给前端导致 JS 精度丢失
+                .userId(String.valueOf(user.getId()))
+                .phone(maskedPhone)
+                // 做好判空防御，防止新注册用户没有头像导致前端报 null
+                .avatar(user.getAvatarUrl() != null ? user.getAvatarUrl() : "")
+                // 枚举转换为字符串（如果你的 role 在实体类中是枚举的话）
+                .role(user.getRole() != null ? user.getRole().toString() : "USER")
+                .createTime(formattedCreateTime)
                 .build();
     }
 
@@ -269,13 +291,76 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 去副表定向查找单条数据
         UserAudioSetting setting = userAudioSettingMapper.selectById(userId);
 
-        // 兜底缓冲策略：如果是新注册用户或者副表记录为空，在内存中实施柔性赋予标准默认值
-        Integer playMode = (setting != null) ? setting.getSwitchPolicy() : 1;
-        Integer autoPlay = (setting != null) ? setting.getAutoPlayEnabled() : 1;
+        // 如果是新用户，副表可能没数据 (setting == null)，需要一套内存默认值兜底
+        if (setting == null) {
+            log.info("💡 用户ID: {} 暂无副表配置，触发内存柔性默认值兜底", userId);
+            return UserAudioSettingVO.builder()
+                    .autoPlay(true)               // 默认开启自动播放
+                    .repeatMode(1)                // 默认每个景点只播放一次
+                    .playSwitchMode(1)            // 默认播完再切（对应你原本想给的 1）
+                    .backgroundPlay(true)         // 默认开启后台播放
+                    .playSpeed(1.0f)              // 默认1倍速
+                    .backwardForwardDuration(15)  // 默认快进快退15秒
+                    .build();
+        }
 
+        // 副表有数据，将数据库的 Tinyint (0/1) 转换为 VO 的 Boolean，并对齐字段名
         return UserAudioSettingVO.builder()
-                .playMode(playMode)
-                .autoPlay(autoPlay)
+                .autoPlay(setting.getAutoPlayEnabled() != null && setting.getAutoPlayEnabled() == 1)
+                .repeatMode(setting.getRepeatPolicy())
+                .playSwitchMode(setting.getSwitchPolicy()) // 🎯 修正：将数据库的 switchPolicy 映射到 VO 的 playSwitchMode
+                .backgroundPlay(setting.getBackgroundPlayEnabled() != null && setting.getBackgroundPlayEnabled() == 1)
+                // 如果你副表里还有下面这两个字段，记得也顺手带上；如果没有，可以给个固定默认值
+                .playSpeed(1.0f)
+                .backwardForwardDuration(15)
                 .build();
+    }
+    @Value("${nav.upload.base-path}")
+    private String basePath;
+
+    @Value("${nav.upload.url-prefix}")
+    private String urlPrefix;
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UserAvatarVO uploadAvatar(Long userId, MultipartFile file) {
+        log.info("🚀 开始执行本地文件上传与数据库回填，用户ID: {}", userId);
+
+        try {
+            // 1. 提取文件后缀名 (如 .jpg, .png)
+            String originalFilename = file.getOriginalFilename();
+            String extension = originalFilename != null && originalFilename.contains(".")
+                    ? originalFilename.substring(originalFilename.lastIndexOf("."))
+                    : ".png";
+
+            // 2. 构造唯一文件名，防止重名覆盖
+            String uniqueFileName = UUID.randomUUID().toString().replace("-", "") + extension;
+
+            // 3. 检查并创建本地物理目录（如果目录不存在则创建）
+            File dir = new File(basePath);
+            if (!dir.exists()) {
+                dir.mkdirs(); // 级联创建目录
+            }
+
+            // 4. 执行文件落盘操作
+            File targetFile = new File(basePath + uniqueFileName);
+            file.transferTo(targetFile);
+
+            // 5. 拼装网络访问的 URL 路径
+            String targetUrl = urlPrefix + uniqueFileName;
+
+            // 6. 状态同步：更新 users 表中该用户的最新头像路径
+            User updateUser = new User();
+            updateUser.setId(userId);
+            updateUser.setAvatarUrl(targetUrl);
+            userMapper.updateById(updateUser);
+
+            log.info("✅ 本地头像上传成功，物理路径: {}, 访问URL: {}", targetFile.getAbsolutePath(), targetUrl);
+
+            return new UserAvatarVO(targetUrl);
+
+        } catch (Exception e) {
+            log.error("❌ 本地头像文件写入或数据库同步发生异常", e);
+            throw new com.nav.exception.BaseException("头像上传失败，请检查服务器目录权限或磁盘空间");
+        }
     }
 }
