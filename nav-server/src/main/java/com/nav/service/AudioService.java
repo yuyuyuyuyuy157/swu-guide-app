@@ -9,4 +9,9 @@ public interface AudioService {
      * @return 音频播放载荷
      */
     AudioDetailVO getAudioDetail(Long audioId);
+
+    /**
+     * 保存或更新用户对某一景点的音频播报进度
+     */
+    void saveOrUpdateProgress(Long userId, Long audioId, Integer progress, Boolean isComplete);
 }

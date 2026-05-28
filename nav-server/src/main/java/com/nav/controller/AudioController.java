@@ -1,5 +1,7 @@
 package com.nav.controller;
 
+import com.nav.context.BaseContext;
+import com.nav.dto.AudioProgressDTO;
 import com.nav.result.Result;
 import com.nav.service.AudioService;
 import com.nav.vo.AudioDetailVO;
@@ -43,5 +45,40 @@ public class AudioController {
 
         AudioDetailVO audioDetailVO = audioService.getAudioDetail(id);
         return Result.success(audioDetailVO);
+    }
+
+    /**
+     * 3.2 自动上报播放进度
+     * 接口路径：POST /api/v1/audio/progress
+     * 业务规范：前端通过节流阀（如每5秒或在 pause/destroy 时）触发上报
+     * @param progressDTO 进度参数
+     * @return 统一返回结果
+     */
+    @PostMapping("/progress")
+    @Operation(summary = "自动上报播放进度")
+    public Result<String> reportProgress(@RequestBody AudioProgressDTO progressDTO) {
+        // 从当前请求线程的 ThreadLocal 中捞取已登录的用户 ID
+        Long userId = BaseContext.getCurrentId();
+        log.info("📡 自动上报进度流触发，用户ID: {}, 语音ID: {}, 当前时间点: {}秒",
+                userId, progressDTO.getAudioId(), progressDTO.getProgress());
+
+        // 参数合法性边界控制
+        if (progressDTO.getAudioId() == null || progressDTO.getProgress() == null) {
+            return Result.error(400, "上报失败：音频ID和进度秒数不能为空");
+        }
+        if (progressDTO.getProgress() < 0) {
+            return Result.error(400, "非法的播放进度时间");
+        }
+
+        Long audioId;
+        try {
+            audioId = Long.valueOf(progressDTO.getAudioId());
+        } catch (NumberFormatException e) {
+            return Result.error(400, "音频ID格式非法");
+        }
+
+        // 调度业务层执行“存在则更新，不存在则插入”的原子操作
+        audioService.saveOrUpdateProgress(userId, audioId, progressDTO.getProgress(), progressDTO.getComplete());
+        return Result.success("进度保存成功");
     }
 }
