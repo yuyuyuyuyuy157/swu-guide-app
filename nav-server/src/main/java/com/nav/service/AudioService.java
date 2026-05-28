@@ -1,5 +1,6 @@
 package com.nav.service;
 
+import com.nav.dto.UserAudioSettingDTO;
 import com.nav.vo.AudioDetailVO;
 
 public interface AudioService {
@@ -14,4 +15,5 @@ public interface AudioService {
      * 保存或更新用户对某一景点的音频播报进度
      */
     void saveOrUpdateProgress(Long userId, Long audioId, Integer progress, Boolean isComplete);
+    void saveSettings(Long userId, UserAudioSettingDTO dto);
 }

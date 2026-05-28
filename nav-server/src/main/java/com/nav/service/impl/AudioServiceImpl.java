@@ -1,5 +1,6 @@
 package com.nav.service.impl;
 
+import com.nav.dto.UserAudioSettingDTO;
 import com.nav.entity.ScenicSpot;
 import com.nav.entity.UserPlaybackHistory;
 import com.nav.mapper.AdminScenicSpotMapper;
@@ -119,5 +120,25 @@ public class AudioServiceImpl implements AudioService {
             userPlaybackHistoryMapper.updateHistory(history);
             log.info("🔑 历史足迹存在，断点续播秒数已成功推移更新。");
         }
+    }
+    @Autowired
+    private UserAudioSettingMapper userAudioSettingMapper;
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void saveSettings(Long userId, UserAudioSettingDTO dto) {
+        // 将前端传来的 Boolean 转换为数据库的 0/1 状态
+        UserAudioSetting setting = UserAudioSetting.builder()
+                .userId(userId)
+                .autoPlayEnabled(Boolean.TRUE.equals(dto.getAutoPlay()) ? 1 : 0)
+                .repeatPolicy(dto.getRepeatMode())
+                .switchPolicy(dto.getPlaySwitchMode())
+                .backgroundPlayEnabled(Boolean.TRUE.equals(dto.getBackgroundPlay()) ? 1 : 0)
+                .defaultSpeed(dto.getPlaySpeed())
+                .backwardForwardDuration(dto.getBackwardForwardDuration())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        // 调用 Mapper 执行 Upsert 逻辑
+        userAudioSettingMapper.saveOrUpdate(setting);
     }
 }

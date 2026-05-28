@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.nav.mapper.UserAudioSettingMapper">
+
+    <insert id="saveOrUpdate">
+        INSERT INTO user_audio_settings
+        (user_id, auto_play_enabled, repeat_policy, switch_policy,
+        background_play_enabled, default_speed, backward_forward_duration, updated_at)
+        VALUES
+        (#{userId}, #{autoPlayEnabled}, #{repeatPolicy}, #{switchPolicy},
+        #{backgroundPlayEnabled}, #{defaultSpeed}, #{backwardForwardDuration}, #{updatedAt})
+        ON DUPLICATE KEY UPDATE
+        auto_play_enabled = VALUES(auto_play_enabled),
+        repeat_policy = VALUES(repeat_policy),
+        switch_policy = VALUES(switch_policy),
+        background_play_enabled = VALUES(background_play_enabled),
+        default_speed = VALUES(default_speed),
+        backward_forward_duration = VALUES(backward_forward_duration),
+        updated_at = VALUES(updated_at)
+    </insert>
+
+</mapper>

@@ -2,6 +2,7 @@ package com.nav.controller;
 
 import com.nav.context.BaseContext;
 import com.nav.dto.AudioProgressDTO;
+import com.nav.dto.UserAudioSettingDTO;
 import com.nav.result.Result;
 import com.nav.service.AudioService;
 import com.nav.vo.AudioDetailVO;
@@ -80,5 +81,21 @@ public class AudioController {
         // 调度业务层执行“存在则更新，不存在则插入”的原子操作
         audioService.saveOrUpdateProgress(userId, audioId, progressDTO.getProgress(), progressDTO.getComplete());
         return Result.success("进度保存成功");
+    }
+    /**
+     * 3.3 保存用户播放设置
+     * 接口路径：POST /api/v1/audio/save-settings
+     */
+    @PostMapping("/save-settings")
+    @Operation(summary = "保存用户播放设置")
+    public Result<String> saveSettings(@RequestBody UserAudioSettingDTO settingDTO) {
+        Long userId = BaseContext.getCurrentId();
+        log.info("📡 收到保存播放设置请求，用户ID: {}, RequestID: {}", userId, settingDTO.getRequestId());
+
+        // 可选：利用 Redis 检查 requestId 是否在近期处理过（严格防重方案）。
+        // 由于这是状态覆盖操作，依赖数据库层的唯一键冲突更新已经足够满足幂等。
+        audioService.saveSettings(userId, settingDTO);
+
+        return Result.success();
     }
 }
