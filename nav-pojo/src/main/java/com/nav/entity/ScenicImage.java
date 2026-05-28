@@ -3,7 +3,11 @@ package com.nav.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
 
 /**
@@ -11,6 +15,9 @@ import java.io.Serializable;
  * 对应数据库表: scenic_images
  */
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 @TableName("scenic_images")
 public class ScenicImage implements Serializable {
 
@@ -19,7 +26,6 @@ public class ScenicImage implements Serializable {
     @TableId(type = IdType.AUTO) // 自增主金
     private Long id;
 
-    private Long scenicId;     // 关联的景点ID
+    private Long spotId;     // 关联的景点ID
     private String imageUrl;   // 图片存储的绝对或相对URL路径
-    private Integer sortOrder; // 轮播图渲染的排序序号（由小到大）
 }
