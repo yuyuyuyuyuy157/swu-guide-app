@@ -1,8 +1,11 @@
 package com.nav.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
 
 /**
@@ -10,6 +13,8 @@ import java.io.Serializable;
  */
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Schema(description = "用户音频播放设置回显数据")
 public class UserAudioSettingVO implements Serializable {
     private static final long serialVersionUID = 1L;
