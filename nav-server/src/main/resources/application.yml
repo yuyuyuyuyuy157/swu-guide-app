@@ -69,6 +69,12 @@ nav:
     user-ttl: 2592000000                             # 用户端通常较长，如30天
     user-token-name: Authorization
 
+    system:
+      default-latitude: 29.815         # 西南大学中心点纬度
+      default-longitude: 106.425       # 西南大学中心点经度
+      default-scenic-id: "1"           # 默认初始加载的景点ID（如共青团花园）
+      user-agreement-url: https://api.swu-guide-app.com/agreements/user.html
+      privacy-policy-url: https://api.swu-guide-app.com/agreements/privacy.html
 app:
   upload:
     # 物理存储路径（注意末尾保留斜杠）

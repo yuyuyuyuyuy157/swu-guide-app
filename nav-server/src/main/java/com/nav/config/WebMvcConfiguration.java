@@ -52,7 +52,8 @@ public class WebMvcConfiguration implements WebMvcConfigurer { // 改为实现�
                         "/download/**",
                         "/doc.html",
                         "/webjars/**",
-                        "/v3/api-docs/**"
+                        "/v3/api-docs/**",
+                        "/api/v1/system/config"
                 );
     }
 }
