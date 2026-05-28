@@ -1,9 +1,14 @@
 package com.nav.service.impl;
 
+import com.nav.context.BaseContext;
 import com.nav.dto.UserAudioSettingDTO;
 import com.nav.entity.ScenicSpot;
+import com.nav.entity.UserAudioSetting;
 import com.nav.entity.UserPlaybackHistory;
+import com.nav.exception.BaseException;
 import com.nav.mapper.AdminScenicSpotMapper;
+import com.nav.mapper.ScenicSpotMapper;
+import com.nav.mapper.UserAudioSettingMapper;
 import com.nav.mapper.UserPlaybackHistoryMapper;
 import com.nav.service.AudioService;
 import com.nav.utils.TtsUtil;
@@ -12,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @Slf4j
@@ -22,66 +29,36 @@ public class AudioServiceImpl implements AudioService {
 
     @Autowired
     private TtsUtil ttsUtil;
-
+    @Autowired
+    private ScenicSpotMapper scenicSpotMapper;
     @Override
     @Transactional(rollbackFor = Exception.class) // 涉及 AI 转化后回填主表，开启声明式事务控制
     public AudioDetailVO getAudioDetail(Long audioId) {
-        log.info("🎯 开始装配景点语音流。步骤一：检查数据库缓存，景点ID: {}", audioId);
+        log.info("开始装配景点语音流。步骤一：检查数据库缓存，景点ID: {}", audioId);
 
-        // 1. 捞取景点主表数据
-        ScenicSpot scenicSpot = adminScenicSpotMapper.getById(audioId);
+        // 1. 从当前线程中捞取用户 ID（因为该接口需要登录权限）
+        Long userId = BaseContext.getCurrentId();
+        log.info("开始查询语音详情，用户ID: {}, 语音ID(景点ID): {}", userId, audioId);
+
+        // 2. 查询景点的基本音频信息
+        ScenicSpot scenicSpot = scenicSpotMapper.selectById(audioId);
         if (scenicSpot == null) {
-            throw new com.nav.exception.BaseException("未找到相关景点的导览数据");
+            throw new BaseException("目标景点或语音资源不存在");
         }
 
-        String audioUrl = scenicSpot.getAudioUrl();
-        int estimatedDuration = 0;
+        // 3. 查询该用户针对该景点的断点续播足迹数据
+        UserPlaybackHistory history = userPlaybackHistoryMapper.getByUserIdAndSpotId(userId, audioId);
 
-        // 2. 核心防线：懒加载与自动回填缓存（TTS即时转译）
-        if (audioUrl == null || audioUrl.isBlank()) {
-            log.warn("⚠️ 检测到景点 [{}] 尚未生成音频，启动 AI 现场转译...", scenicSpot.getName());
+        // 4. 如果有历史记录就取上次的进度，没有就从 0 秒开始首播
+        Integer lastProgress = (history != null) ? history.getLastProgress() : 0;
 
-            String textToConvert = scenicSpot.getDescription();
-            if (textToConvert == null || textToConvert.isBlank()) {
-                textToConvert = "欢迎来到美丽的" + scenicSpot.getName() + "。祝您游览愉快！";
-            }
-            audioUrl = ttsUtil.convertTextToSpeech(textToConvert);
-
-            ScenicSpot updateSpot = new ScenicSpot();
-            updateSpot.setId(audioId);
-            updateSpot.setAudioUrl(audioUrl);
-            adminScenicSpotMapper.update(updateSpot);
-
-            estimatedDuration = textToConvert.length() / 4;
-        } else {
-            log.info("✅ 命中数据库缓存，直接下发。");
-            estimatedDuration = 60;
-        }
-
-        // =========================================================
-        // 3. 🎯 完美对接你的 UserPlaybackHistory，获取断点进度
-        // =========================================================
-        Long userId = com.nav.context.BaseContext.getCurrentId();
-        Integer savedProgress = 0;
-
-        if (userId != null) {
-            // 注意：你的实体里叫 spotId，所以这里传参时把 audioId 作为 spotId 传进去
-            UserPlaybackHistory historyRecord = userPlaybackHistoryMapper.selectByUserIdAndSpotId(userId, audioId);
-
-            // 健壮性防线：不仅判断对象不为空，还要防止数据库里 lastProgress 为 NULL 导致拆箱异常
-            if (historyRecord != null && historyRecord.getLastProgress() != null) {
-                savedProgress = historyRecord.getLastProgress();
-                log.info("🎧 检索到用户历史播放记录，累计播放次数: {}，断点位置：{} 秒",
-                        historyRecord.getPlayCount(), savedProgress);
-            }
-        }
-
-        // 4. 组装下发
+        // 5. 拼装对齐《接口文档5.18.1》3.1节的契约数据
         return AudioDetailVO.builder()
-                .audioUrl(audioUrl)
-                .title(scenicSpot.getName() + " - 官方语音解说")
-                .duration(estimatedDuration > 0 ? estimatedDuration : 30)
-                .lastProgress(savedProgress) // 🎯 完美注入断点进度
+                .audioUrl(scenicSpot.getAudioUrl())
+                // 假设你的景点表里还没有存储音频总时长，这里可以先从实体取，或者结合你的AI TTS懒加载技术动态获取
+                .duration(300) // 示例伪数据，实际开发中可以从数据库读取独立音频时长字段
+                .title(scenicSpot.getName() + "语音讲解")
+                .lastProgress(lastProgress)
                 .build();
     }
     @Autowired

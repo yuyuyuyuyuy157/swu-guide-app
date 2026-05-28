@@ -5,22 +5,16 @@
 
     <select id="getByCurrentLocation" resultType="com.nav.entity.ScenicSpot">
         SELECT
-        id, name, description, image_url, audio_url, latitude, longitude, radius,
+        id, name, description, image_url AS imageUrl, audio_url AS audioUrl,
+        latitude, longitude, radius, updated_by AS updatedBy,
+        created_at AS createdAt, updated_at AS updatedAt,
         /* 动态计算当前位置到景点的距离（米） */
         ST_Distance_Sphere(location, ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326)) AS distance
         FROM scenic_spots
-        WHERE is_deleted = 0
-        /* 核心过滤：计算出的距离必须小于等于景点的感应半径 */
-        AND ST_Distance_Sphere(location, ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326)) &lt;= radius
+        /* 核心过滤：计算出的距离必须小于等于景点的感应半径（注意：移除了不存在的 is_deleted） */
+        WHERE ST_Distance_Sphere(location, ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326)) &lt;= radius
         ORDER BY distance ASC
         LIMIT 1
-    </select>
-
-    <select id="listAll" resultType="com.nav.entity.ScenicSpot">
-        SELECT id, name, description, image_url, audio_url, latitude, longitude, radius, updated_by, created_at, updated_at
-        FROM scenic_spots
-        WHERE is_deleted = 0
-        ORDER BY id DESC
     </select>
 
     <select id="pageQuery" resultType="com.nav.vo.AdminScenicSpotVO">
@@ -33,7 +27,6 @@
         FROM scenic_spots s
         LEFT JOIN users u ON s.updated_by = u.id
         <where>
-            s.is_deleted = 0
             <if test="keyword != null and keyword != ''">
                 AND s.name LIKE CONCAT('%', #{keyword}, '%')
             </if>
@@ -41,50 +34,4 @@
         ORDER BY s.updated_at DESC
     </select>
 
-    <update id="softDeleteByIds">
-        UPDATE scenic_spots
-        SET
-        is_deleted = 1,
-        updated_at = NOW()  WHERE id IN
-        <foreach collection="ids" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-        AND is_deleted = 0
-    </update>
-
-    <update id="update">
-        UPDATE scenic_spots
-        <set>
-            <if test="name != null and name != ''">
-                name = #{name},
-            </if>
-            <if test="description != null and description != ''">
-                description = #{description},
-            </if>
-            <if test="updatedAt != null">
-                updated_at = #{updatedAt},
-            </if>
-            <if test="updatedBy != null">
-                updated_by = #{updatedBy},
-            </if>
-        </set>
-        WHERE id = #{id}
-        AND is_deleted = 0
-    </update>
-    <insert id="insert">
-        INSERT INTO scenic_spots
-        (name, description, image_url, audio_url, latitude, longitude, location, radius, is_deleted, created_by, updated_by, created_at, updated_at)
-        VALUES
-        (#{name}, #{description}, #{imageUrl}, #{audioUrl}, #{latitude}, #{longitude},
-        ST_GeomFromText(CONCAT('POINT(', #{longitude}, ' ', #{latitude}, ')'), 4326),
-        #{radius}, #{isDeleted}, #{createdBy}, #{updatedBy}, #{createdAt}, #{updatedAt})
-    </insert>
-
-    <insert id="insertBatch">
-        INSERT INTO scenic_images (scenic_id, image_url, sort_order)
-        VALUES
-        <foreach collection="images" item="img" separator=",">
-            (#{img.scenicId}, #{img.imageUrl}, #{img.sortOrder})
-        </foreach>
-    </insert>
 </mapper>

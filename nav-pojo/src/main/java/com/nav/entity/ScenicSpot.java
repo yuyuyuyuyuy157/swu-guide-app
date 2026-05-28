@@ -1,15 +1,26 @@
 package com.nav.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.locationtech.jts.geom.Point; // 引入JTS的空间点对象
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("scenic_spots")
-public class ScenicSpot {
-    @TableId(type = IdType.ASSIGN_ID)
+public class ScenicSpot implements Serializable { // 🎯 修正 1：强烈建议实现序列化，契合你前面的 VO/DTO 规范
+
+    private static final long serialVersionUID = 1L;
+
+    @TableId(type = IdType.AUTO) // 🎯 修正 2：你的 SQL 里是 AUTO_INCREMENT，这里必须改成 AUTO，否则雪花 ID 会冲崩自增主键
     private Long id;
 
     private String name;
@@ -22,21 +33,20 @@ public class ScenicSpot {
     private BigDecimal longitude;
 
     /**
-     * 🎯 空间索引核心字段
-     * insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER
-     * 痛点驱使：因为 MySQL 空间字段写入必须包裹 ST_GeomFromText('POINT(经度 纬度)', 4326) 函数，
-     * 单纯靠 MP 自动生成的常规 SQL 无法直接写入，后续我们会提供专门的空间写入 Mapper 方法。
+     * 🎯 空间索引核心字段 利用 MP 的 typeHandler 自动解析二进制空间点
      */
-    @TableField(value = "location", insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
-    private transient Point location; // transient 避免 MP 默认的常规 CRUD 序列化冲突
+    @TableField(value = "location", typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
+    private Point location;
 
     private Integer radius;
     private Long updatedBy;
-    private Long createdBy;
-    @TableLogic
-    private Integer isDeleted;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private LocalDateTime deletedAt;
+
+    /**
+     * 🎯 修正 6：根据最新追加的 scenic_images 表，把轮播图列表存放在这里，并标记不存在于主表
+     */
+    @TableField(exist = false)
+    private List<String> images;
 }
