@@ -6,6 +6,7 @@ import com.nav.dto.UserAudioSettingDTO;
 import com.nav.result.Result;
 import com.nav.service.AudioService;
 import com.nav.vo.AudioDetailVO;
+import com.nav.vo.UserAudioSettingVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -97,5 +98,16 @@ public class AudioController {
         audioService.saveSettings(userId, settingDTO);
 
         return Result.success();
+    }
+
+    @GetMapping("/get-settings")
+    @Operation(summary = "获取用户播放设置")
+    public Result<UserAudioSettingVO> getSettings() {
+        // 从当前请求线程上下文中安全捞出登录用户的唯一ID
+        Long userId = BaseContext.getCurrentId();
+        log.info("📡 收到获取播放设置请求，用户ID: {}", userId);
+
+        UserAudioSettingVO settingVO = audioService.getSettings(userId);
+        return Result.success(settingVO);
     }
 }

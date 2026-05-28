@@ -6,5 +6,5 @@ import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
 public interface UserAudioSettingMapper extends BaseMapper<UserAudioSetting> {
-    // 彻底干掉自定义的 saveOrUpdate XML 语句，这里什么都不用写！
+
 }

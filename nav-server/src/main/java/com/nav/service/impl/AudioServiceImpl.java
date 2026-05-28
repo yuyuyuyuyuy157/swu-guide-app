@@ -12,6 +12,7 @@ import com.nav.mapper.UserAudioSettingMapper;
 import com.nav.mapper.UserPlaybackHistoryMapper;
 import com.nav.service.AudioService;
 import com.nav.vo.AudioDetailVO;
+import com.nav.vo.UserAudioSettingVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -46,7 +47,7 @@ public class AudioServiceImpl implements AudioService {
             throw new BaseException("目标景点或语音资源不存在");
         }
 
-        // 3. 🎯 完美替代：利用 MP 的 LambdaQueryWrapper 代替已经删除的 selectByUserIdAndSpotId 方法
+        // 3. 完美替代：利用 MP 的 LambdaQueryWrapper 代替已经删除的 selectByUserIdAndSpotId 方法
         UserPlaybackHistory history = userPlaybackHistoryMapper.selectOne(
                 new LambdaQueryWrapper<UserPlaybackHistory>()
                         .eq(UserPlaybackHistory::getUserId, userId)
@@ -121,6 +122,40 @@ public class AudioServiceImpl implements AudioService {
         // 2. 🎯 完美平替 ON DUPLICATE KEY UPDATE：
         // 利用 MP 在 Mapper 层提供的高级更新构造器，通过特定的唯一约束组合（或主键）一键进行 Upsert
         userAudioSettingMapper.insertOrUpdate(setting);
-        log.info("🔑 用户播放设置（Upsert）保存成功。");
+        log.info("用户播放设置（Upsert）保存成功。");
+    }
+
+    @Override
+    public UserAudioSettingVO getSettings(Long userId) {
+        log.info("🔍 开始从数据库检索用户播放设置偏好，用户ID: {}", userId);
+
+        UserAudioSetting setting = userAudioSettingMapper.selectOne(
+                new LambdaQueryWrapper<UserAudioSetting>()
+                        .eq(UserAudioSetting::getUserId, userId)
+        );
+
+        // 核心防断裂控制：用户首次进入系统，无定制数据时的兜底防御
+        if (setting == null) {
+            log.info("💡 检查到用户 {} 属于首次加载，触发系统默认参数兜底策略", userId);
+            return UserAudioSettingVO.builder()
+                    .autoPlay(false)                  // 默认关闭自动触发
+                    .repeatMode(1)                    // 默认每个景点只播一次
+                    .playSwitchMode(1)                // 默认播完再切
+                    .backgroundPlay(true)             // 默认允许后台音频播放
+                    .playSpeed(1.0f)                  // 默认标准倍速
+                    .backwardForwardDuration(15)      // 默认快进快退15秒
+                    .build();
+        }
+        log.info("用户播放设置获取成功。");
+        // 将数据库内存储的 0/1 状态平滑映射为前端所需要的 Boolean 契约类型
+        return UserAudioSettingVO.builder()
+                .autoPlay(setting.getAutoPlayEnabled() == 1)
+                .repeatMode(setting.getRepeatPolicy())
+                .playSwitchMode(setting.getSwitchPolicy())
+                .backgroundPlay(setting.getBackgroundPlayEnabled() == 1)
+                .playSpeed(setting.getDefaultSpeed() != null ? setting.getDefaultSpeed().floatValue() : 1.0f)
+                .backwardForwardDuration(setting.getBackwardForwardDuration())
+                .build();
+
     }
 }
