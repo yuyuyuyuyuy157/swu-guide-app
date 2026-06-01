@@ -71,7 +71,9 @@ export const useAudioStore = defineStore('audio', {
         return false
       }
 
-      if (this.currentSpot?.scenicId === spot.scenicId && audio.src) {
+      const sameSpot = this.currentSpot?.scenicId === spot.scenicId && audio.src
+      const canResumeCurrentAudio = this.currentTime > 0 && (!this.duration || this.currentTime < this.duration)
+      if (sameSpot && (this.isPlaying || canResumeCurrentAudio)) {
         this.togglePlay()
         return true
       }
@@ -85,7 +87,8 @@ export const useAudioStore = defineStore('audio', {
 
       try {
         const detailData = (await request.get('/audio/detail', {
-          params: { audioId: spot.audioId }
+          params: { audioId: spot.audioId },
+          timeout: 60000
         })) as any
 
         audio.src = resolveResourceUrl(detailData.audioUrl)

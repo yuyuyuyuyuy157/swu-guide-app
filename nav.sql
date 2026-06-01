@@ -68,7 +68,7 @@ CREATE TABLE `scenic_spots_audit_log` (
 -- ===================================================================
 CREATE TABLE `user_audio_settings` (
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '关联用户 ID',
-    `auto_play_enabled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '自动播放总开关：0-手动点播（关闭）, 1-开启自动（开启）',
+    `auto_play_enabled` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '自动播放总开关：0-手动点播（关闭）, 1-开启自动（开启）',
     `repeat_policy` TINYINT NOT NULL DEFAULT 1 COMMENT '策略一（频次）：1-每个景点只播放一次, 2-可以播放多次',
     `switch_policy` TINYINT NOT NULL DEFAULT 1 COMMENT '策略二（触发）：1-播完再切, 2-随位置实时切, 3-增加弹窗提醒',
     `background_play_enabled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '后台播放设置开关：0-关闭, 1-开启（触发后台定位权限检测）',

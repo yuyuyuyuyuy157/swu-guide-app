@@ -9,11 +9,19 @@ import com.nav.service.AudioService;
 import com.nav.vo.AudioDetailVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -25,6 +33,15 @@ public class AudioServiceImpl implements AudioService {
     @Autowired
     private ScenicSpotMapper scenicSpotMapper;
 
+    @Value("${nav.upload.base-dir:D:/nav-uploads}")
+    private String uploadBaseDir;
+
+    @Value("${nav.tts.enabled:true}")
+    private boolean ttsEnabled;
+
+    @Value("${nav.tts.powershell-path:C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe}")
+    private String powerShellPath;
+
     @Override
     public AudioDetailVO getAudioDetail(String audioId) {
         Long spotId = Long.valueOf(audioId);
@@ -34,8 +51,13 @@ public class AudioServiceImpl implements AudioService {
                 .findFirst()
                 .orElse(null);
 
-        if (target == null || target.getAudioUrl() == null || target.getAudioUrl().isBlank()) {
-            throw new RuntimeException("This scenic spot has no audio guide");
+        if (target == null) {
+            throw new RuntimeException("This scenic spot does not exist");
+        }
+
+        String audioUrl = target.getAudioUrl();
+        if (audioUrl == null || audioUrl.isBlank()) {
+            audioUrl = generateNarrationAudio(target);
         }
 
         Integer lastProgress = 0;
@@ -52,7 +74,7 @@ public class AudioServiceImpl implements AudioService {
         }
 
         return AudioDetailVO.builder()
-                .audioUrl(target.getAudioUrl())
+                .audioUrl(audioUrl)
                 .duration(0)
                 .title(target.getName())
                 .lastProgress(lastProgress > 0 ? 0 : 0)
@@ -127,6 +149,7 @@ public class AudioServiceImpl implements AudioService {
 
     private Boolean toBool(Object val) {
         if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
         if (val instanceof Number) return ((Number) val).intValue() != 0;
         return false;
     }
@@ -141,5 +164,107 @@ public class AudioServiceImpl implements AudioService {
         if (val == null) return defaultVal;
         if (val instanceof Number) return ((Number) val).doubleValue();
         return defaultVal;
+    }
+
+    private String generateNarrationAudio(ScenicSpot spot) {
+        if (!ttsEnabled) {
+            throw new RuntimeException("Server TTS is disabled");
+        }
+
+        String text = buildNarrationText(spot);
+        if (text.isBlank()) {
+            throw new RuntimeException("This scenic spot has no narration text");
+        }
+
+        try {
+            String hash = sha256(text).substring(0, 16);
+            String fileName = "scenic-" + spot.getId() + "-" + hash + ".wav";
+            Path dir = Path.of(uploadBaseDir, "tts");
+            Path audioFile = dir.resolve(fileName);
+
+            if (Files.exists(audioFile) && Files.size(audioFile) > 44) {
+                return "/download/tts/" + fileName;
+            }
+
+            Files.createDirectories(dir);
+            synthesizeWithWindowsSapi(text, audioFile);
+            return "/download/tts/" + fileName;
+        } catch (Exception e) {
+            log.error("Failed to generate narration audio for scenicId={}: {}", spot.getId(), e.getMessage());
+            throw new RuntimeException("Failed to generate narration audio");
+        }
+    }
+
+    private String buildNarrationText(ScenicSpot spot) {
+        String name = spot.getName() == null ? "" : spot.getName().trim();
+        String description = spot.getDescription() == null ? "" : spot.getDescription().trim();
+        String text = (name + "。" + description).trim();
+        return text.length() > 1500 ? text.substring(0, 1500) : text;
+    }
+
+    private void synthesizeWithWindowsSapi(String text, Path outputFile) throws Exception {
+        String script = """
+                Add-Type -AssemblyName System.Speech
+                $text = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('__TEXT__'))
+                $out = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('__OUTPUT__'))
+                $tmp = $out + '.tmp.wav'
+                if (Test-Path $tmp) { Remove-Item $tmp -Force }
+                $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+                $voice = $synth.GetInstalledVoices() |
+                  Where-Object {
+                    $_.Enabled -and (
+                      $_.VoiceInfo.Culture.Name -like 'zh*' -or
+                      $_.VoiceInfo.Name -match 'Chinese|Huihui|Kangkang|Yaoyao|Xiaoxiao|Yunxi|Xiaoyi'
+                    )
+                  } |
+                  Select-Object -First 1
+                if ($null -ne $voice) { $synth.SelectVoice($voice.VoiceInfo.Name) }
+                $synth.Rate = 0
+                $synth.Volume = 100
+                $synth.SetOutputToWaveFile($tmp)
+                $synth.Speak($text)
+                $synth.SetOutputToNull()
+                $synth.Dispose()
+                Move-Item -Path $tmp -Destination $out -Force
+                """;
+
+        script = script
+                .replace("__TEXT__", Base64.getEncoder().encodeToString(text.getBytes(StandardCharsets.UTF_8)))
+                .replace("__OUTPUT__", Base64.getEncoder().encodeToString(outputFile.toAbsolutePath().toString().getBytes(StandardCharsets.UTF_8)));
+
+        String encodedCommand = Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
+        Process process = new ProcessBuilder(
+                powerShellPath,
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-EncodedCommand",
+                encodedCommand
+        ).redirectErrorStream(true).start();
+
+        boolean finished = process.waitFor(Duration.ofSeconds(45).toMillis(), TimeUnit.MILLISECONDS);
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
+        if (!finished) {
+            process.destroyForcibly();
+            throw new RuntimeException("PowerShell TTS timed out");
+        }
+        if (process.exitValue() != 0) {
+            throw new RuntimeException("PowerShell TTS failed: " + output);
+        }
+        if (!Files.exists(outputFile) || Files.size(outputFile) <= 44) {
+            throw new RuntimeException("PowerShell TTS produced an empty file");
+        }
+    }
+
+    private String sha256(String text) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(text.getBytes(StandardCharsets.UTF_8));
+        StringBuilder builder = new StringBuilder();
+        for (byte b : hash) {
+            builder.append(String.format("%02x", b));
+        }
+        return builder.toString();
     }
 }

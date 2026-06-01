@@ -62,25 +62,14 @@
 
           <template v-else>
             <van-button
-              v-if="scenicData.hasAudio"
               round
-              :type="isPlaying ? 'success' : 'primary'"
+              :type="talkButtonType"
               size="small"
-              :icon="isPlaying ? 'pause-circle-o' : 'play-circle-o'"
-              @click.stop="playAudio"
+              :icon="talkButtonIcon"
+              :class="{ 'ai-btn': !canPlayNarration }"
+              @click.stop="playNarration"
             >
-              {{ isPlaying ? '播放中' : '听讲解' }}
-            </van-button>
-
-            <van-button
-              round
-              type="primary"
-              size="small"
-              class="ai-btn"
-              :icon="aiSpeaking ? 'pause-circle-o' : 'volume-o'"
-              @click.stop="aiPlay"
-            >
-              {{ aiSpeaking ? '停止讲解' : 'AI 讲解' }}
+              {{ talkButtonText }}
             </van-button>
           </template>
         </div>
@@ -102,6 +91,7 @@ import { useAuthStore } from '../stores/auth'
 import { useLocationStore } from '../stores/location'
 import { useAudioStore } from '../stores/audio'
 import { fetchCurrentScenic } from '../api/scenic'
+import { openNativeTtsSettings, speakNativeTts, stopNativeTts } from '../utils/nativeTts'
 import type { ScenicSpot } from '../types/api'
 
 const props = defineProps<{ selectedSpot?: ScenicSpot | null }>()
@@ -120,12 +110,34 @@ const aiSpeaking = ref(false)
 
 let fetchTimer: ReturnType<typeof setTimeout> | null = null
 let pollTimer: ReturnType<typeof setInterval> | null = null
+let aiStopTimer: ReturnType<typeof setTimeout> | null = null
 let currentUtterance: SpeechSynthesisUtterance | null = null
 let keepSpotUntil = 0
 let nullMissCount = 0
+let ttsDialogVisible = false
 
 const isCurrentPlaying = computed(() => audioStore.currentSpot?.scenicId === scenicData.value?.scenicId)
 const isPlaying = computed(() => isCurrentPlaying.value && audioStore.isPlaying)
+const hasNarrationText = computed(() => !!scenicData.value?.intro?.trim())
+const canPlayNarration = computed(() => !!scenicData.value?.hasAudio || hasNarrationText.value)
+const talkButtonText = computed(() => {
+  if (canPlayNarration.value) {
+    return isPlaying.value ? '播放中' : '听讲解'
+  }
+  return aiSpeaking.value ? '停止讲解' : 'AI 讲解'
+})
+const talkButtonIcon = computed(() => {
+  if (canPlayNarration.value) {
+    return isPlaying.value ? 'pause-circle-o' : 'play-circle-o'
+  }
+  return aiSpeaking.value ? 'pause-circle-o' : 'volume-o'
+})
+const talkButtonType = computed(() => {
+  if (canPlayNarration.value) {
+    return isPlaying.value ? 'success' : 'primary'
+  }
+  return 'primary'
+})
 
 watch(
   () => audioStore.currentTime,
@@ -163,7 +175,9 @@ watch(
 
 const refreshCurrentScenic = async (lat: number, lng: number) => {
   const prevSpotId = scenicData.value?.scenicId
-  loading.value = true
+  if (!scenicData.value) {
+    loading.value = true
+  }
   try {
     const data = await fetchCurrentScenic(lat, lng)
     if (data) {
@@ -201,6 +215,20 @@ const applyScenicSpot = async (spot: ScenicSpot, forceAnnounce: boolean) => {
   await autoAnnounce(spot, forceAnnounce)
 }
 
+const toPlayableSpot = (spot: ScenicSpot | null) => {
+  if (!spot) {
+    return null
+  }
+  if (!spot.hasAudio && !spot.intro?.trim()) {
+    return null
+  }
+  return {
+    ...spot,
+    hasAudio: true,
+    audioId: spot.audioId || spot.scenicId
+  } as ScenicSpot
+}
+
 const autoAnnounce = async (spot: ScenicSpot, force: boolean) => {
   if (!force && !audioStore.settings.autoPlay) {
     return
@@ -209,28 +237,84 @@ const autoAnnounce = async (spot: ScenicSpot, force: boolean) => {
     return
   }
 
-  if (spot.hasAudio) {
-    const played = await audioStore.playScenicAudio(spot, { autoTrigger: true })
-    if (!played) {
-      speakIntro(spot)
+  const playableSpot = toPlayableSpot(spot)
+  if (playableSpot) {
+    const played = await audioStore.playScenicAudio(playableSpot, { autoTrigger: true })
+    if (played) {
+      return
+    }
+    return
+  }
+}
+
+const buildIntroText = (spot: ScenicSpot) => {
+  const intro = spot.intro?.trim() || '暂无简介'
+  return `${spot.name}。${intro}`
+}
+
+const clearAiTimer = () => {
+  if (aiStopTimer) {
+    clearTimeout(aiStopTimer)
+    aiStopTimer = null
+  }
+}
+
+const stopAiSpeech = async () => {
+  clearAiTimer()
+  await stopNativeTts()
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel()
+  }
+  aiSpeaking.value = false
+  currentUtterance = null
+}
+
+const promptTtsSetup = async () => {
+  if (ttsDialogVisible) {
+    return
+  }
+  ttsDialogVisible = true
+  try {
+    await showConfirmDialog({
+      title: '需要开启系统语音引擎',
+      message: '后端语音生成失败，且当前手机没有可用的文字转语音引擎。请先检查后端是否已重启，或在系统设置中启用中文语音引擎。',
+      confirmButtonText: '去设置',
+      cancelButtonText: '稍后再说'
+    })
+    await openNativeTtsSettings()
+  } catch {
+    // User cancelled.
+  } finally {
+    ttsDialogVisible = false
+  }
+}
+
+const speakIntro = async (spot: ScenicSpot, promptSetup = true) => {
+  audioStore.pause()
+  await stopAiSpeech()
+
+  const text = buildIntroText(spot)
+  const nativeResult = await speakNativeTts(text, audioStore.settings.playSpeed || 1)
+  if (nativeResult.ok) {
+    aiSpeaking.value = true
+    const estimatedDuration = Math.min(90000, Math.max(8000, text.length * 260))
+    aiStopTimer = setTimeout(() => {
+      aiSpeaking.value = false
+      aiStopTimer = null
+    }, estimatedDuration)
+    return
+  }
+
+  if (!('speechSynthesis' in window)) {
+    if (promptSetup) {
+      await promptTtsSetup()
+    } else {
+      showToast('讲解音频生成失败，请检查后端')
     }
     return
   }
 
-  speakIntro(spot)
-}
-
-const speakIntro = (spot: ScenicSpot) => {
-  if (!('speechSynthesis' in window)) {
-    showToast('当前浏览器不支持 AI 语音朗读')
-    return
-  }
-
-  audioStore.pause()
-  window.speechSynthesis.cancel()
-
-  const intro = spot.intro?.trim() || '暂无简介'
-  currentUtterance = new SpeechSynthesisUtterance(`${spot.name}。${intro}`)
+  currentUtterance = new SpeechSynthesisUtterance(text)
   currentUtterance.lang = 'zh-CN'
   currentUtterance.rate = audioStore.settings.playSpeed || 1
   currentUtterance.pitch = 1
@@ -269,22 +353,34 @@ const closeCard = () => {
 }
 
 const playAudio = async () => {
-  if (!scenicData.value) {
+  const playableSpot = toPlayableSpot(scenicData.value)
+  if (!playableSpot) {
     return
   }
-  await audioStore.playScenicAudio(scenicData.value)
+  await stopAiSpeech()
+  await audioStore.playScenicAudio(playableSpot)
 }
 
-const aiPlay = () => {
+const aiPlay = async () => {
   if (!scenicData.value) {
     return
   }
   if (aiSpeaking.value) {
-    window.speechSynthesis.cancel()
-    aiSpeaking.value = false
+    await stopAiSpeech()
     return
   }
-  speakIntro(scenicData.value)
+  await speakIntro(scenicData.value, true)
+}
+
+const playNarration = async () => {
+  if (!scenicData.value) {
+    return
+  }
+  if (toPlayableSpot(scenicData.value)) {
+    await playAudio()
+    return
+  }
+  await aiPlay()
 }
 
 const goLoginForAudio = () => {
@@ -321,9 +417,7 @@ onUnmounted(() => {
   if (pollTimer) {
     clearInterval(pollTimer)
   }
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
+  stopAiSpeech()
 })
 </script>
 

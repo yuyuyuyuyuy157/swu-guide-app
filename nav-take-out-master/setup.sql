@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS `scenic_spots_audit_log` (
 -- 4. user_audio_settings table
 CREATE TABLE IF NOT EXISTS `user_audio_settings` (
     `user_id` BIGINT UNSIGNED NOT NULL,
-    `auto_play_enabled` TINYINT(1) NOT NULL DEFAULT 0,
+    `auto_play_enabled` TINYINT(1) NOT NULL DEFAULT 1,
     `repeat_policy` TINYINT NOT NULL DEFAULT 1,
     `switch_policy` TINYINT NOT NULL DEFAULT 1,
     `background_play_enabled` TINYINT(1) NOT NULL DEFAULT 0,

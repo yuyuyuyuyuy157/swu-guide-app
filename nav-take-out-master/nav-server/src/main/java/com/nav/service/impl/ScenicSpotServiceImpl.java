@@ -165,7 +165,8 @@ public class ScenicSpotServiceImpl implements ScenicSpotService {
         vo.setDistance("0");
 
         String audioUrl = asString(row.get("audio_url"));
-        boolean hasAudio = audioUrl != null && !audioUrl.isBlank();
+        String intro = asString(row.get("description"));
+        boolean hasAudio = (audioUrl != null && !audioUrl.isBlank()) || (intro != null && !intro.isBlank());
         vo.setHasAudio(hasAudio);
         vo.setAudioId(hasAudio ? id : null);
         return vo;
